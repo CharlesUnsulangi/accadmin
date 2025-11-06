@@ -140,19 +140,24 @@
                     <small class="text-muted ms-2">Menampilkan {{ $transactions->firstItem() ?? 0 }} - {{ $transactions->lastItem() ?? 0 }}</small>
                 </div>
                 <select wire:model.live="perPage" class="form-select w-auto">
-                    <option value="10">10 / halaman</option>
-                    <option value="25">25 / halaman</option>
                     <option value="50">50 / halaman</option>
                     <option value="100">100 / halaman</option>
+                    <option value="200">200 / halaman</option>
+                    <option value="300">300 / halaman</option>
                 </select>
             </div>
 
             <div class="accordion" id="jurnalAccordion">
                 @forelse($transactions as $trans)
                     @php
-                        $totalDebet = $trans->details->sum('transcoa_debet_value');
-                        $totalCredit = $trans->details->sum('transcoa_credit_value');
+                        // Filter details: transcoa_head_code = transmain_codetransaksi
+                        $filteredDetails = $trans->filtered_details;
+                        $totalDebet = $filteredDetails->sum('transcoa_debet_value');
+                        $totalCredit = $filteredDetails->sum('transcoa_credit_value');
                         $isBalanced = abs($totalDebet - $totalCredit) < 0.01;
+                        
+                        // Debug: Uncomment untuk lihat data
+                        // dd($trans->transmain_code, $trans->transmain_codetransaksi, $trans->rec_comcode, $trans->rec_areacode, $filteredDetails->count());
                     @endphp
                     <div class="accordion-item mb-2">
                         <h2 class="accordion-header">
@@ -190,8 +195,16 @@
                                             <i class="fas fa-{{ $isBalanced ? 'check-circle' : 'exclamation-triangle' }} me-1"></i>
                                             {{ $isBalanced ? 'Balance' : 'Unbalance' }}
                                         </span>
+                                        <span class="badge bg-info text-white">
+                                            <i class="fas fa-plus-circle me-1"></i>
+                                            Debet: {{ number_format($totalDebet, 2) }}
+                                        </span>
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-minus-circle me-1"></i>
+                                            Credit: {{ number_format($totalCredit, 2) }}
+                                        </span>
                                         <span class="badge bg-light text-dark border">
-                                            <i class="fas fa-list me-1"></i>{{ $trans->details->count() }} baris
+                                            <i class="fas fa-list me-1"></i>{{ $filteredDetails->count() }} baris
                                         </span>
                                     </div>
                                 </div>
@@ -232,7 +245,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach($trans->details as $detail)
+                                            @forelse($filteredDetails as $detail)
                                                 <tr>
                                                     <td>
                                                         @if($detail->transcoa_coa_code)
@@ -297,7 +310,19 @@
                                                         @endif
                                                     </td>
                                                 </tr>
-                                            @endforeach
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="text-center py-3">
+                                                        <div class="text-muted">
+                                                            <i class="fas fa-info-circle me-2"></i>
+                                                            Tidak ada detail transaksi untuk voucher ini
+                                                            <div class="small mt-1">
+                                                                (Filter: transcoa_head_code = {{ $trans->transmain_codetransaksi }})
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            @endforelse
                                         </tbody>
                                         <tfoot class="table-secondary">
                                             <tr>

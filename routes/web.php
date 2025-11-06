@@ -51,6 +51,9 @@ Route::middleware('auth')->group(function () {
     // Jurnal Transaksi - BOOTSTRAP VERSION
     Route::get('/jurnal-transaksi', \App\Livewire\JurnalTransaksi::class)->name('jurnal.transaksi');
     
+    // Cheque Management - BOOTSTRAP VERSION
+    Route::get('/cheque-management', \App\Livewire\ChequeManagement::class)->name('cheque.management');
+    
     // COA Management Routes - Old (redirect to modern)
     Route::get('/coa', function () {
         return redirect()->route('coa.modern');

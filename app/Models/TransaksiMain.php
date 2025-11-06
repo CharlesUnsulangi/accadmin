@@ -49,11 +49,21 @@ class TransaksiMain extends Model
 
     /**
      * Relationship to detail lines
+     * transcoa_head_code (detail) = transmain_codetransaksi (header)
      */
     public function details()
     {
-        return $this->hasMany(TransaksiCoa::class, 'transcoa_transaksi_main_code', 'transmain_code')
+        return $this->hasMany(TransaksiCoa::class, 'transcoa_head_code', 'transmain_codetransaksi');
+    }
+    
+    /**
+     * Get filtered details by company and area
+     */
+    public function getFilteredDetailsAttribute()
+    {
+        return $this->details()
                     ->where('rec_comcode', $this->rec_comcode)
-                    ->where('rec_areacode', $this->rec_areacode);
+                    ->where('rec_areacode', $this->rec_areacode)
+                    ->get();
     }
 }

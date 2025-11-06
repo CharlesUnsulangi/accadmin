@@ -141,19 +141,24 @@
                     <small class="text-muted ms-2">Menampilkan <?php echo e($transactions->firstItem() ?? 0); ?> - <?php echo e($transactions->lastItem() ?? 0); ?></small>
                 </div>
                 <select wire:model.live="perPage" class="form-select w-auto">
-                    <option value="10">10 / halaman</option>
-                    <option value="25">25 / halaman</option>
                     <option value="50">50 / halaman</option>
                     <option value="100">100 / halaman</option>
+                    <option value="200">200 / halaman</option>
+                    <option value="300">300 / halaman</option>
                 </select>
             </div>
 
             <div class="accordion" id="jurnalAccordion">
                 <!--[if BLOCK]><![endif]--><?php $__empty_1 = true; $__currentLoopData = $transactions; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $trans): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                     <?php
-                        $totalDebet = $trans->details->sum('transcoa_debet_value');
-                        $totalCredit = $trans->details->sum('transcoa_credit_value');
+                        // Filter details: transcoa_head_code = transmain_codetransaksi
+                        $filteredDetails = $trans->filtered_details;
+                        $totalDebet = $filteredDetails->sum('transcoa_debet_value');
+                        $totalCredit = $filteredDetails->sum('transcoa_credit_value');
                         $isBalanced = abs($totalDebet - $totalCredit) < 0.01;
+                        
+                        // Debug: Uncomment untuk lihat data
+                        // dd($trans->transmain_code, $trans->transmain_codetransaksi, $trans->rec_comcode, $trans->rec_areacode, $filteredDetails->count());
                     ?>
                     <div class="accordion-item mb-2">
                         <h2 class="accordion-header">
@@ -194,8 +199,18 @@
                                             <?php echo e($isBalanced ? 'Balance' : 'Unbalance'); ?>
 
                                         </span>
+                                        <span class="badge bg-info text-white">
+                                            <i class="fas fa-plus-circle me-1"></i>
+                                            Debet: <?php echo e(number_format($totalDebet, 2)); ?>
+
+                                        </span>
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-minus-circle me-1"></i>
+                                            Credit: <?php echo e(number_format($totalCredit, 2)); ?>
+
+                                        </span>
                                         <span class="badge bg-light text-dark border">
-                                            <i class="fas fa-list me-1"></i><?php echo e($trans->details->count()); ?> baris
+                                            <i class="fas fa-list me-1"></i><?php echo e($filteredDetails->count()); ?> baris
                                         </span>
                                     </div>
                                 </div>
@@ -240,7 +255,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <!--[if BLOCK]><![endif]--><?php $__currentLoopData = $trans->details; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $detail): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                            <!--[if BLOCK]><![endif]--><?php $__empty_2 = true; $__currentLoopData = $filteredDetails; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $detail): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_2 = false; ?>
                                                 <tr>
                                                     <td>
                                                         <!--[if BLOCK]><![endif]--><?php if($detail->transcoa_coa_code): ?>
@@ -306,7 +321,19 @@
                                                         <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
                                                     </td>
                                                 </tr>
-                                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?><!--[if ENDBLOCK]><![endif]-->
+                                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_2): ?>
+                                                <tr>
+                                                    <td colspan="6" class="text-center py-3">
+                                                        <div class="text-muted">
+                                                            <i class="fas fa-info-circle me-2"></i>
+                                                            Tidak ada detail transaksi untuk voucher ini
+                                                            <div class="small mt-1">
+                                                                (Filter: transcoa_head_code = <?php echo e($trans->transmain_codetransaksi); ?>)
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            <?php endif; ?><!--[if ENDBLOCK]><![endif]-->
                                         </tbody>
                                         <tfoot class="table-secondary">
                                             <tr>

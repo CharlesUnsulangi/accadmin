@@ -97,6 +97,11 @@
                         <i class="fas fa-book"></i>
                         <span>Jurnal Transaksi</span>
                     </a>
+                    
+                    <a href="{{ route('cheque.management') }}" class="nav-link {{ request()->routeIs('cheque.management') ? 'active' : '' }}">
+                        <i class="fas fa-money-check-alt"></i>
+                        <span>Buku Cheque</span>
+                    </a>
                 </div>
 
                 <!-- Pure JS Versions -->

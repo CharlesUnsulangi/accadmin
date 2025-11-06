@@ -24,7 +24,7 @@ class JurnalTransaksi extends Component
     public $filterCoa = '';
     public $filterStatus = '';
     public $filterType = '';
-    public $perPage = 25;
+    public $perPage = 50;
 
     // Sorting
     public $sortBy = 'transcoa_coa_date';
@@ -97,17 +97,13 @@ class JurnalTransaksi extends Component
     {
         // Query transaksi main (header) dengan detail
         $transactions = TransaksiMain::query()
-            ->with(['details.coa'])
+            ->with(['details', 'details.coa'])
             ->where('rec_status', '1')
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
                     $q->where('transmain_code', 'like', '%' . $this->search . '%')
                       ->orWhere('transmain_codetransaksi', 'like', '%' . $this->search . '%')
-                      ->orWhere('transmain_desc', 'like', '%' . $this->search . '%')
-                      ->orWhereHas('details', function($q2) {
-                          $q2->where('transcoa_coa_code', 'like', '%' . $this->search . '%')
-                             ->orWhere('transcoa_coa_desc', 'like', '%' . $this->search . '%');
-                      });
+                      ->orWhere('transmain_desc', 'like', '%' . $this->search . '%');
                 });
             })
             ->when($this->filterDateFrom, function ($query) {
@@ -115,16 +111,6 @@ class JurnalTransaksi extends Component
             })
             ->when($this->filterDateTo, function ($query) {
                 $query->where('transmain_document_date', '<=', $this->filterDateTo);
-            })
-            ->when($this->filterCoa, function ($query) {
-                $query->whereHas('details', function($q) {
-                    $q->where('transcoa_coa_code', $this->filterCoa);
-                });
-            })
-            ->when($this->filterStatus, function ($query) {
-                $query->whereHas('details', function($q) {
-                    $q->where('transcoa_statusposting', $this->filterStatus);
-                });
             })
             ->orderBy('transmain_document_date', 'desc')
             ->orderBy('transmain_code', 'desc')
@@ -136,11 +122,13 @@ class JurnalTransaksi extends Component
                       ->pluck('coa_desc', 'coa_code');
 
         // Get summary statistics from details
+        // Filter: transcoa_head_code = transmain_codetransaksi
         $summary = DB::table('tr_acc_transaksi_main as m')
             ->join('tr_acc_transaksi_coa as d', function($join) {
                 $join->on('d.transcoa_transaksi_main_code', '=', 'm.transmain_code')
                      ->on('d.rec_comcode', '=', 'm.rec_comcode')
-                     ->on('d.rec_areacode', '=', 'm.rec_areacode');
+                     ->on('d.rec_areacode', '=', 'm.rec_areacode')
+                     ->on('d.transcoa_head_code', '=', 'm.transmain_codetransaksi');
             })
             ->where('m.rec_status', '1')
             ->where('d.rec_status', '1')

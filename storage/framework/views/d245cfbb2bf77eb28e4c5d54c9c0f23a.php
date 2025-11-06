@@ -98,6 +98,11 @@
                         <i class="fas fa-book"></i>
                         <span>Jurnal Transaksi</span>
                     </a>
+                    
+                    <a href="<?php echo e(route('cheque.management')); ?>" class="nav-link <?php echo e(request()->routeIs('cheque.management') ? 'active' : ''); ?>">
+                        <i class="fas fa-money-check-alt"></i>
+                        <span>Buku Cheque</span>
+                    </a>
                 </div>
 
                 <!-- Pure JS Versions -->
