@@ -138,12 +138,12 @@ class CoaFullHierarchy extends Component
                    ->orderBy('coasub2_code')
                    ->pluck('coasub2_desc', 'coasub2_code');
 
-        return view('livewire.coa-full-hierarchy', [
+        return view('livewire.coa-full-hierarchy-bootstrap', [
             'hierarchy' => $hierarchy,
             'mains' => $mains,
             'sub1s' => $sub1s,
             'sub2s' => $sub2s,
-        ])->layout('layouts.admin');
+        ])->layout('layouts.bootstrap');
     }
 
     /**

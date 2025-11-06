@@ -402,8 +402,8 @@ class CoaModernManagement extends Component
             ->orderBy('coa_code')
             ->paginate($this->perPage);
 
-        return view('livewire.coa-modern-management', [
+        return view('livewire.coa-modern-management-bootstrap', [
             'coas' => $coas,
-        ])->layout('layouts.admin');
+        ])->layout('layouts.bootstrap');
     }
 }

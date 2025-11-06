@@ -228,8 +228,8 @@ class CoaMainManagement extends Component
             ->orderBy('coa_main_code')
             ->paginate($this->perPage);
 
-        return view('livewire.coa-main-management', [
+        return view('livewire.coa-main-management-bootstrap', [
             'coaMains' => $coaMains,
-        ])->layout('layouts.admin');
+        ])->layout('layouts.bootstrap');
     }
 }

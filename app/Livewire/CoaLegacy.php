@@ -52,32 +52,32 @@ class CoaLegacy extends Component
 
     public function render()
     {
-        // Query dari tabel CoaSub2 (Legacy Level 3) dengan relationship
-        $coaSub2s = CoaSub2::query()
-            ->with(['coaSub1.coaMain', 'coas']) // Eager load relationships
+        // Query dari tabel CoaMain (Legacy Level 1 - ROOT) dengan nested relationships
+        $coaMains = CoaMain::query()
+            ->with(['coaSub1s.coaSub2s.coas']) // Eager load all nested relationships
             ->where('rec_status', '1')
             ->when($this->search, function ($query) {
                 $query->where(function ($q) {
-                    $q->where('coasub2_code', 'like', '%' . $this->search . '%')
-                      ->orWhere('coasub2_desc', 'like', '%' . $this->search . '%')
-                      ->orWhereHas('coaSub1', function($q2) {
-                          $q2->where('coasub1_desc', 'like', '%' . $this->search . '%');
-                      })
-                      ->orWhereHas('coaSub1.coaMain', function($q3) {
-                          $q3->where('coa_main_desc', 'like', '%' . $this->search . '%');
+                    $q->where('coa_main_code', 'like', '%' . $this->search . '%')
+                      ->orWhere('coa_main_desc', 'like', '%' . $this->search . '%')
+                      ->orWhereHas('coaSub1s', function($q2) {
+                          $q2->where('coasub1_desc', 'like', '%' . $this->search . '%')
+                             ->orWhereHas('coaSub2s', function($q3) {
+                                 $q3->where('coasub2_desc', 'like', '%' . $this->search . '%');
+                             });
                       });
                 });
             })
             ->when($this->filterMain, function ($query) {
-                $query->whereHas('coaSub1', function($q) {
-                    $q->where('coasub1_code', 'like', $this->filterMain . '%');
-                });
+                $query->where('coa_main_code', $this->filterMain);
             })
             ->when($this->filterSub1, function ($query) {
-                $query->where('coasub2_code', 'like', $this->filterSub1 . '%');
+                $query->whereHas('coaSub1s', function($q) {
+                    $q->where('coasub1_code', $this->filterSub1);
+                });
             })
-            ->orderBy($this->sortBy, $this->sortDirection)
-            ->paginate(20);
+            ->orderBy('coa_main_code')
+            ->paginate(10);
 
         // Get unique values for filters
         $mains = CoaMain::where('rec_status', '1')
@@ -86,15 +86,15 @@ class CoaLegacy extends Component
         
         $sub1s = CoaSub1::where('rec_status', '1')
                         ->when($this->filterMain, function ($query) {
-                            $query->where('coasub1_code', 'like', $this->filterMain . '%');
+                            $query->where('coasub1_maincode', $this->filterMain);
                         })
                         ->orderBy('coasub1_code')
                         ->pluck('coasub1_desc', 'coasub1_code');
 
-        return view('livewire.coa-legacy', [
-            'coaSub2s' => $coaSub2s,
+        return view('livewire.coa-legacy-bootstrap', [
+            'coaMains' => $coaMains,
             'mains' => $mains,
             'sub1s' => $sub1s,
-        ])->layout('layouts.admin');
+        ])->layout('layouts.bootstrap');
     }
 }
