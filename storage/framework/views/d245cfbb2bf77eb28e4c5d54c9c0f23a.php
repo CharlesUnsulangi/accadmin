@@ -25,6 +25,8 @@
             border-radius: 0.5rem;
             margin: 0.25rem 0;
             transition: all 0.3s;
+            display: flex;
+            align-items: center;
         }
         .sidebar .nav-link:hover {
             background: rgba(255,255,255,0.1);
@@ -38,6 +40,12 @@
         .sidebar .nav-link i {
             width: 20px;
             margin-right: 0.5rem;
+        }
+        .sidebar .nav-link .fa-chevron-down {
+            transition: transform 0.3s;
+        }
+        .sidebar .nav-link[aria-expanded="true"] .fa-chevron-down {
+            transform: rotate(180deg);
         }
         .navbar-brand {
             font-weight: 700;
@@ -103,6 +111,125 @@
                         <i class="fas fa-money-check-alt"></i>
                         <span>Buku Cheque</span>
                     </a>
+                    
+                    <a href="<?php echo e(route('transaksi.cheque')); ?>" class="nav-link <?php echo e(request()->routeIs('transaksi.cheque') ? 'active' : ''); ?>">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>Transaksi Cheque</span>
+                    </a>
+                </div>
+
+                <!-- Master Menu -->
+                <div class="mt-3">
+                    <small class="text-white-50 px-3 text-uppercase">Master</small>
+                    
+                    <!-- Master Data Dropdown -->
+                    <div class="nav-link" data-bs-toggle="collapse" data-bs-target="#masterSubmenu" 
+                         style="cursor: pointer;" 
+                         aria-expanded="<?php echo e(request()->routeIs('master.*') ? 'true' : 'false'); ?>">
+                        <i class="fas fa-database"></i>
+                        <span>Master Data</span>
+                        <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
+                    </div>
+                    <div class="collapse <?php echo e(request()->routeIs('master.*') ? 'show' : ''); ?>" id="masterSubmenu">
+                        <a href="<?php echo e(route('master.bank')); ?>" class="nav-link ps-5 <?php echo e(request()->routeIs('master.bank') ? 'active' : ''); ?>">
+                            <i class="fas fa-university"></i>
+                            <span>Bank</span>
+                        </a>
+                        <a href="<?php echo e(route('master.area')); ?>" class="nav-link ps-5 <?php echo e(request()->routeIs('master.area') ? 'active' : ''); ?>">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Area</span>
+                        </a>
+                        <a href="<?php echo e(route('master.vendor')); ?>" class="nav-link ps-5 <?php echo e(request()->routeIs('master.vendor') ? 'active' : ''); ?>">
+                            <i class="fas fa-users"></i>
+                            <span>Vendor/Supplier</span>
+                        </a>
+                        <a href="<?php echo e(route('master.transaksi')); ?>" class="nav-link ps-5 <?php echo e(request()->routeIs('master.transaksi') ? 'active' : ''); ?>">
+                            <i class="fas fa-exchange-alt"></i>
+                            <span>Jenis Transaksi</span>
+                        </a>
+                        <a href="<?php echo e(route('master.statuscheque')); ?>" class="nav-link ps-5 <?php echo e(request()->routeIs('master.statuscheque') ? 'active' : ''); ?>">
+                            <i class="fas fa-check-square"></i>
+                            <span>Status Cheque</span>
+                        </a>
+                        <a href="#" class="nav-link ps-5">
+                            <i class="fas fa-building"></i>
+                            <span>Company</span>
+                        </a>
+                        <a href="#" class="nav-link ps-5">
+                            <i class="fas fa-user-tie"></i>
+                            <span>Customer</span>
+                        </a>
+                        <a href="#" class="nav-link ps-5">
+                            <i class="fas fa-cube"></i>
+                            <span>Item/Product</span>
+                        </a>
+                        <a href="#" class="nav-link ps-5">
+                            <i class="fas fa-tags"></i>
+                            <span>Category</span>
+                        </a>
+                        <a href="#" class="nav-link ps-5">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Currency</span>
+                        </a>
+                        <a href="#" class="nav-link ps-5">
+                            <i class="fas fa-percentage"></i>
+                            <span>Tax</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Admin Menu -->
+                <div class="mt-3">
+                    <small class="text-white-50 px-3 text-uppercase">Admin</small>
+                    
+                    <!-- Admin IT Dropdown -->
+                    <div class="nav-link" data-bs-toggle="collapse" data-bs-target="#adminItSubmenu" 
+                         style="cursor: pointer;" 
+                         class="<?php echo e(request()->routeIs('it.documentation') || request()->routeIs('admin.sp') ? 'active' : ''); ?>">
+                        <i class="fas fa-tools"></i>
+                        <span>Admin IT</span>
+                        <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
+                    </div>
+                    <div class="collapse <?php echo e(request()->routeIs('it.documentation') || request()->routeIs('admin.sp') ? 'show' : ''); ?>" 
+                         id="adminItSubmenu">
+                        <a href="<?php echo e(route('it.documentation')); ?>" 
+                           class="nav-link ps-5 <?php echo e(request()->routeIs('it.documentation') ? 'active' : ''); ?>">
+                            <i class="fas fa-book-open"></i>
+                            <span>IT Documentation</span>
+                        </a>
+                        <a href="<?php echo e(route('admin.sp')); ?>" 
+                           class="nav-link ps-5 <?php echo e(request()->routeIs('admin.sp') ? 'active' : ''); ?>">
+                            <i class="fas fa-database"></i>
+                            <span>Stored Procedures</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Dokumentasi Menu -->
+                <div class="mt-3">
+                    <small class="text-white-50 px-3 text-uppercase">Dokumentasi</small>
+                    
+                    <!-- Dokumentasi Dropdown -->
+                    <div class="nav-link" data-bs-toggle="collapse" data-bs-target="#docsSubmenu" 
+                         style="cursor: pointer;" 
+                         aria-expanded="<?php echo e(request()->routeIs('it.documentation') || request()->routeIs('docs.tables') ? 'true' : 'false'); ?>">
+                        <i class="fas fa-book"></i>
+                        <span>Dokumentasi</span>
+                        <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
+                    </div>
+                    <div class="collapse <?php echo e(request()->routeIs('it.documentation') || request()->routeIs('docs.tables') ? 'show' : ''); ?>" 
+                         id="docsSubmenu">
+                        <a href="<?php echo e(route('it.documentation')); ?>" 
+                           class="nav-link ps-5 <?php echo e(request()->routeIs('it.documentation') ? 'active' : ''); ?>">
+                            <i class="fas fa-file-alt"></i>
+                            <span>IT Documentation</span>
+                        </a>
+                        <a href="<?php echo e(route('docs.tables')); ?>" 
+                           class="nav-link ps-5 <?php echo e(request()->routeIs('docs.tables') ? 'active' : ''); ?>">
+                            <i class="fas fa-table"></i>
+                            <span>Tables</span>
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Pure JS Versions -->

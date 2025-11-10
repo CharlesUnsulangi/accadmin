@@ -257,6 +257,34 @@ class Coa extends Model
     }
 
     /**
+     * Helper: Get CoaSub1 through CoaSub2
+     * ms_acc_coa → ms_acc_coasub2 → ms_acc_coasub1
+     */
+    public function coaSub1()
+    {
+        return $this->hasOneThrough(
+            CoaSub1::class,           // Final model
+            CoaSub2::class,           // Intermediate model
+            'coa_main2_code',         // FK di CoaSub2 (dari Coa)
+            'coa_main1_code',         // FK di CoaSub1 (dari CoaSub2)
+            'coa_coasub2code',        // Local key di Coa
+            'coa_main1_code'          // Local key di CoaSub2
+        );
+    }
+
+    /**
+     * Helper: Get CoaMain through CoaSub2 and CoaSub1
+     * ms_acc_coa → ms_acc_coasub2 → ms_acc_coasub1 → ms_acc_coa_main
+     * 
+     * NOTE: Karena hasManyThrough hanya support 1 intermediate, 
+     * kita pakai approach alternatif via accessor
+     */
+    public function getCoaMainAttribute()
+    {
+        return $this->coaSub2?->coaSub1?->coaMain;
+    }
+
+    /**
      * ================================================================
      * SCOPES
      * ================================================================

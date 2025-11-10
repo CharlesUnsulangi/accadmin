@@ -1,4 +1,19 @@
 <div>
+    <!-- Flash Messages -->
+    @if (session()->has('message'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>{{ session('message') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
+    @if (session()->has('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>{{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    @endif
+
     <!-- Header Card -->
     <div class="card shadow-sm mb-4">
         <div class="card-body">
@@ -15,8 +30,8 @@
                     <a href="{{ route('coa.modern') }}" class="btn btn-primary me-2">
                         <i class="fas fa-arrow-right me-1"></i>Modern View
                     </a>
-                    <button class="btn btn-success">
-                        <i class="fas fa-plus me-1"></i>Add New
+                    <button wire:click="openAddModal('main')" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>Add Main Category
                     </button>
                 </div>
             </div>
@@ -159,6 +174,14 @@
                                                 @endif
                                             </div>
                                         </div>
+                                        <div class="row mt-3">
+                                            <div class="col-md-12 text-end">
+                                                <button wire:click="openAddModal('sub1', '{{ $main->coa_main_code }}', '{{ $main->coa_main_desc }}')" 
+                                                        class="btn btn-success btn-sm">
+                                                    <i class="fas fa-plus me-1"></i>Add Sub1 Category under this Main
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -189,6 +212,24 @@
                                                 <div id="collapseSub1{{ $sub1->coasub1_code }}" class="accordion-collapse collapse" 
                                                      data-bs-parent="#accordionSub1Main{{ $main->coa_main_code }}">
                                                     <div class="accordion-body bg-light">
+                                                        <!-- Sub1 Info with Add Button -->
+                                                        <div class="card bg-white mb-3">
+                                                            <div class="card-body py-2">
+                                                                <div class="row align-items-center">
+                                                                    <div class="col-md-8">
+                                                                        <strong>Sub1 Code:</strong> <code>{{ $sub1->coasub1_code }}</code> | 
+                                                                        <strong>Description:</strong> {{ $sub1->coasub1_desc }}
+                                                                    </div>
+                                                                    <div class="col-md-4 text-end">
+                                                                        <button wire:click="openAddModal('sub2', '{{ $sub1->coasub1_code }}', '{{ $sub1->coasub1_desc }}')" 
+                                                                                class="btn btn-success btn-sm">
+                                                                            <i class="fas fa-plus me-1"></i>Add Sub2
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
                                                         <!-- Sub2 Categories (Level 3) -->
                                                         @if($sub1->coaSub2s && $sub1->coaSub2s->count() > 0)
                                                             <div class="accordion" id="accordionSub2Sub1{{ $sub1->coasub1_code }}">
@@ -216,6 +257,22 @@
                                                                         <div id="collapseSub2{{ $sub2->coasub2_code }}" class="accordion-collapse collapse" 
                                                                              data-bs-parent="#accordionSub2Sub1{{ $sub1->coasub1_code }}">
                                                                             <div class="accordion-body">
+                                                                                <!-- Sub2 Info with Add Button -->
+                                                                                <div class="alert alert-light border mb-3">
+                                                                                    <div class="row align-items-center">
+                                                                                        <div class="col-md-8">
+                                                                                            <strong>Sub2 Code:</strong> <code>{{ $sub2->coasub2_code }}</code> | 
+                                                                                            <strong>Description:</strong> {{ $sub2->coasub2_desc }}
+                                                                                        </div>
+                                                                                        <div class="col-md-4 text-end">
+                                                                                            <button wire:click="openAddModal('coa', '{{ $sub2->coasub2_code }}', '{{ $sub2->coasub2_desc }}')" 
+                                                                                                    class="btn btn-success btn-sm">
+                                                                                                <i class="fas fa-plus me-1"></i>Add Detail COA
+                                                                                            </button>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                
                                                                                 <!-- Detail COAs (Level 4) -->
                                                                                 @if($sub2->coas && $sub2->coas->count() > 0)
                                                                                     <div class="card">
@@ -338,6 +395,100 @@
             </div>
         </div>
     </div>
+
+    <!-- Add New Modal -->
+    @if($showAddModal)
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title">
+                            <i class="fas fa-plus-circle me-2"></i>
+                            Add New {{ strtoupper($addLevel) }}
+                            @if($parentCode)
+                                under <code class="text-white">{{ $parentCode }}</code>
+                            @endif
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" wire:click="closeAddModal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @if($parentCode)
+                            <div class="alert alert-info">
+                                <strong><i class="fas fa-info-circle me-2"></i>Parent:</strong> 
+                                <code>{{ $parentCode }}</code> - {{ $parentDesc }}
+                            </div>
+                        @endif
+
+                        <form wire:submit.prevent="saveNew">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <strong>Code <span class="text-danger">*</span></strong>
+                                </label>
+                                <input type="text" 
+                                       wire:model="newCode" 
+                                       class="form-control @error('newCode') is-invalid @enderror" 
+                                       placeholder="Enter code (e.g., 101, A01, etc.)"
+                                       required>
+                                @error('newCode')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <strong>Description <span class="text-danger">*</span></strong>
+                                </label>
+                                <input type="text" 
+                                       wire:model="newDesc" 
+                                       class="form-control @error('newDesc') is-invalid @enderror" 
+                                       placeholder="Enter description"
+                                       required>
+                                @error('newDesc')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            @if($addLevel === 'coa')
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <strong>Note</strong>
+                                    </label>
+                                    <textarea wire:model="newNote" 
+                                              class="form-control" 
+                                              rows="3"
+                                              placeholder="Additional notes (optional)"></textarea>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">
+                                        <strong>Cash Flow Code (Arus Kas)</strong>
+                                    </label>
+                                    <input type="text" 
+                                           wire:model="newArusKas" 
+                                           class="form-control" 
+                                           placeholder="e.g., O (Operasional), I (Investasi), F (Financing)">
+                                    <small class="text-muted">Common values: O, I, F</small>
+                                </div>
+                            @endif
+
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Note:</strong> Make sure the code is unique and follows your COA numbering convention.
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" wire:click="closeAddModal">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-success" wire:click="saveNew">
+                            <i class="fas fa-save me-1"></i>Save New {{ strtoupper($addLevel) }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <style>
         .cursor-pointer {

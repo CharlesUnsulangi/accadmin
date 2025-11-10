@@ -116,6 +116,61 @@ return [
             ],
         ],
 
+        // Additional SQL Server Connections
+        'sqlsrv_rcm_dev' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DB_HOST', 'localhost'),
+            'port' => env('DB_PORT', '1433'),
+            'database' => 'RCM_DEV_HGS_SB',
+            'username' => env('DB_USERNAME', 'sa'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'encrypt' => env('DB_ENCRYPT', 'yes'),
+            'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', true),
+            'options' => [
+                PDO::ATTR_EMULATE_PREPARES => true,
+            ],
+        ],
+
+        // Following databases are not accessible with current credentials
+        // Uncomment and update credentials if access is granted
+        
+        // 'sqlsrv_rcm_prod' => [
+        //     'driver' => 'sqlsrv',
+        //     'host' => env('DB_HOST', 'localhost'),
+        //     'port' => env('DB_PORT', '1433'),
+        //     'database' => 'RCM_PROD_HGS_SB',
+        //     'username' => env('DB_USERNAME', 'sa'),
+        //     'password' => env('DB_PASSWORD', ''),
+        //     'charset' => 'utf8',
+        //     'prefix' => '',
+        //     'prefix_indexes' => true,
+        //     'encrypt' => env('DB_ENCRYPT', 'yes'),
+        //     'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', true),
+        //     'options' => [
+        //         PDO::ATTR_EMULATE_PREPARES => true,
+        //     ],
+        // ],
+
+        // 'sqlsrv_acc' => [
+        //     'driver' => 'sqlsrv',
+        //     'host' => env('DB_HOST', 'localhost'),
+        //     'port' => env('DB_PORT', '1433'),
+        //     'database' => 'ACC',
+        //     'username' => env('DB_USERNAME', 'sa'),
+        //     'password' => env('DB_PASSWORD', ''),
+        //     'charset' => 'utf8',
+        //     'prefix' => '',
+        //     'prefix_indexes' => true,
+        //     'encrypt' => env('DB_ENCRYPT', 'yes'),
+        //     'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', true),
+        //     'options' => [
+        //         PDO::ATTR_EMULATE_PREPARES => true,
+        //     ],
+        // ],
+
     ],
 
     /*

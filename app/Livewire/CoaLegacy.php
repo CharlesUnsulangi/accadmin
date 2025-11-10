@@ -33,6 +33,16 @@ class CoaLegacy extends Component
     public $sortBy = 'coasub2_code';
     public $sortDirection = 'asc';
 
+    // Add New COA Form
+    public $showAddModal = false;
+    public $addLevel = ''; // 'main', 'sub1', 'sub2', 'coa'
+    public $parentCode = '';
+    public $parentDesc = '';
+    public $newCode = '';
+    public $newDesc = '';
+    public $newNote = '';
+    public $newArusKas = '';
+
     protected $queryString = ['search', 'filterLevel'];
 
     public function updatingSearch()
@@ -47,6 +57,76 @@ class CoaLegacy extends Component
         } else {
             $this->sortBy = $field;
             $this->sortDirection = 'asc';
+        }
+    }
+
+    public function openAddModal($level, $parentCode = '', $parentDesc = '')
+    {
+        $this->reset(['newCode', 'newDesc', 'newNote', 'newArusKas']);
+        $this->addLevel = $level;
+        $this->parentCode = $parentCode;
+        $this->parentDesc = $parentDesc;
+        $this->showAddModal = true;
+    }
+
+    public function closeAddModal()
+    {
+        $this->showAddModal = false;
+        $this->reset(['addLevel', 'parentCode', 'parentDesc', 'newCode', 'newDesc', 'newNote', 'newArusKas']);
+    }
+
+    public function saveNew()
+    {
+        // Validation
+        $this->validate([
+            'newCode' => 'required|string|max:50',
+            'newDesc' => 'required|string|max:255',
+        ]);
+
+        try {
+            if ($this->addLevel === 'main') {
+                // Add new Main Category
+                CoaMain::create([
+                    'coa_main_code' => $this->newCode,
+                    'coa_main_desc' => $this->newDesc,
+                    'rec_status' => '1',
+                ]);
+                
+            } elseif ($this->addLevel === 'sub1') {
+                // Add new Sub1 under Main
+                CoaSub1::create([
+                    'coasub1_code' => $this->newCode,
+                    'coasub1_desc' => $this->newDesc,
+                    'coasub1_maincode' => $this->parentCode,
+                    'rec_status' => '1',
+                ]);
+                
+            } elseif ($this->addLevel === 'sub2') {
+                // Add new Sub2 under Sub1
+                CoaSub2::create([
+                    'coasub2_code' => $this->newCode,
+                    'coasub2_desc' => $this->newDesc,
+                    'coasub2_sub1code' => $this->parentCode,
+                    'rec_status' => '1',
+                ]);
+                
+            } elseif ($this->addLevel === 'coa') {
+                // Add new COA under Sub2
+                Coa::create([
+                    'coa_code' => $this->newCode,
+                    'coa_desc' => $this->newDesc,
+                    'coa_coasub2code' => $this->parentCode,
+                    'coa_note' => $this->newNote,
+                    'arus_kas_code' => $this->newArusKas,
+                    'rec_status' => '1',
+                ]);
+            }
+
+            session()->flash('message', 'New ' . strtoupper($this->addLevel) . ' added successfully!');
+            $this->closeAddModal();
+            
+        } catch (\Exception $e) {
+            session()->flash('error', 'Error adding new entry: ' . $e->getMessage());
         }
     }
 
