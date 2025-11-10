@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Expand/Collapse All</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-light">
+    <div class="container mt-5" x-data="testCollapse()">
+        <h2 class="mb-4">Test Expand/Collapse All Functionality</h2>
+        
+        <!-- Toggle All Button -->
+        <div class="mb-3">
+            <button @click="toggleAllHierarchy()" class="btn btn-primary">
+                <i class="bi" :class="allExpanded ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                <span x-text="allExpanded ? 'Collapse All' : 'Expand All'"></span>
+            </button>
+            <span class="ms-3 text-muted">Status: <strong x-text="allExpanded ? 'All Expanded' : 'All Collapsed'"></strong></span>
+        </div>
+
+        <!-- Test Table -->
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>COA Code</th>
+                    <th>
+                        COA Description
+                        <button @click="toggleAllHierarchy()" class="btn btn-sm btn-link p-0 ms-2" type="button">
+                            <i class="bi" :class="allExpanded ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+                        </button>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <template x-for="(item, index) in data" :key="item.id">
+                    <tr>
+                        <td x-text="index + 1"></td>
+                        <td><code x-text="item.coa_code"></code></td>
+                        <td>
+                            <div class="d-flex align-items-start">
+                                <button 
+                                    @click="item.hierarchyExpanded = !item.hierarchyExpanded" 
+                                    class="btn btn-sm btn-link p-0 me-2" 
+                                    type="button"
+                                    x-show="item.coa_main_desc">
+                                    <i class="bi" :class="item.hierarchyExpanded ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+                                </button>
+                                <div class="flex-grow-1">
+                                    <div x-text="item.coa_desc"></div>
+                                    
+                                    <!-- Hierarchy Details -->
+                                    <div x-show="item.hierarchyExpanded" 
+                                         x-transition
+                                         class="mt-2 pt-2 border-top bg-light p-2">
+                                        <div x-show="item.coa_main_desc" class="mb-2">
+                                            <small class="text-muted d-block">Main Category:</small>
+                                            <div class="ms-2">
+                                                <code class="text-primary" x-text="item.coa_main_code"></code>
+                                                <span class="ms-1" x-text="item.coa_main_desc"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div x-show="item.coasub1_desc" class="mb-2">
+                                            <small class="text-muted d-block">Sub Category 1:</small>
+                                            <div class="ms-2">
+                                                <code class="text-info" x-text="item.coasub1_code"></code>
+                                                <span class="ms-1" x-text="item.coasub1_desc"></span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div x-show="item.coasub2_desc">
+                                            <small class="text-muted d-block">Sub Category 2:</small>
+                                            <div class="ms-2">
+                                                <code class="text-warning" x-text="item.coasub2_code"></code>
+                                                <span class="ms-1" x-text="item.coasub2_desc"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </template>
+            </tbody>
+        </table>
+
+        <!-- Debug Info -->
+        <div class="mt-4 p-3 bg-white border rounded">
+            <h5>Debug Information:</h5>
+            <pre x-text="JSON.stringify({
+                allExpanded: allExpanded,
+                itemStates: data.map(i => ({ id: i.id, code: i.coa_code, expanded: i.hierarchyExpanded }))
+            }, null, 2)"></pre>
+        </div>
+    </div>
+
+    <script>
+        function testCollapse() {
+            return {
+                allExpanded: false,
+                data: [
+                    {
+                        id: 1,
+                        coa_code: '1010101',
+                        coa_desc: 'Kas Kecil',
+                        coa_main_code: '1',
+                        coa_main_desc: 'Aktiva',
+                        coasub1_code: '101',
+                        coasub1_desc: 'Aktiva Lancar',
+                        coasub2_code: '10101',
+                        coasub2_desc: 'Kas',
+                        hierarchyExpanded: false
+                    },
+                    {
+                        id: 2,
+                        coa_code: '1010102',
+                        coa_desc: 'Kas Besar',
+                        coa_main_code: '1',
+                        coa_main_desc: 'Aktiva',
+                        coasub1_code: '101',
+                        coasub1_desc: 'Aktiva Lancar',
+                        coasub2_code: '10101',
+                        coasub2_desc: 'Kas',
+                        hierarchyExpanded: false
+                    },
+                    {
+                        id: 3,
+                        coa_code: '1010201',
+                        coa_desc: 'Bank BRI',
+                        coa_main_code: '1',
+                        coa_main_desc: 'Aktiva',
+                        coasub1_code: '101',
+                        coasub1_desc: 'Aktiva Lancar',
+                        coasub2_code: '10102',
+                        coasub2_desc: 'Bank',
+                        hierarchyExpanded: false
+                    },
+                    {
+                        id: 4,
+                        coa_code: '2010101',
+                        coa_desc: 'Hutang Usaha',
+                        coa_main_code: '2',
+                        coa_main_desc: 'Passiva',
+                        coasub1_code: '201',
+                        coasub1_desc: 'Hutang Lancar',
+                        coasub2_code: '20101',
+                        coasub2_desc: 'Hutang Jangka Pendek',
+                        hierarchyExpanded: false
+                    },
+                    {
+                        id: 5,
+                        coa_code: '4010101',
+                        coa_desc: 'Pendapatan Jasa',
+                        coa_main_code: '4',
+                        coa_main_desc: 'Pendapatan',
+                        coasub1_code: '401',
+                        coasub1_desc: 'Pendapatan Usaha',
+                        coasub2_code: '40101',
+                        coasub2_desc: 'Pendapatan Operasional',
+                        hierarchyExpanded: false
+                    }
+                ],
+
+                toggleAllHierarchy() {
+                    console.log('Toggle clicked! Current state:', this.allExpanded);
+                    this.allExpanded = !this.allExpanded;
+                    console.log('New state:', this.allExpanded);
+                    
+                    // Update each item's hierarchyExpanded property
+                    this.data.forEach((item, index) => {
+                        console.log(`Updating item ${index} (${item.coa_code}) to:`, this.allExpanded);
+                        item.hierarchyExpanded = this.allExpanded;
+                    });
+                    
+                    console.log('Final data state:', this.data.map(i => ({ 
+                        code: i.coa_code, 
+                        expanded: i.hierarchyExpanded 
+                    })));
+                }
+            };
+        }
+    </script>
+</body>
+</html>

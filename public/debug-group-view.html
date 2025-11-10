@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Group View</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-light">
+    <div class="container-fluid mt-4" x-data="debugGroup()">
+        <h2>🔍 Debug Group View Data Structure</h2>
+        
+        <div class="row mb-3">
+            <div class="col-12">
+                <button @click="loadTestData()" class="btn btn-primary">Load Data from API</button>
+                <button @click="buildGroupedData()" class="btn btn-success ms-2" :disabled="!data.length">Build Grouped Data</button>
+                <span class="ms-3 badge bg-info" x-text="'Data Count: ' + data.length"></span>
+            </div>
+        </div>
+
+        <!-- Raw Data Sample -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-dark text-white">
+                        <h5 class="mb-0">📋 Sample Raw Data (First 3 Items)</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre class="mb-0" style="max-height: 300px; overflow-y: auto;"><code x-text="JSON.stringify(data.slice(0, 3), null, 2)"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grouped Data Structure -->
+        <div class="row mb-3" x-show="Object.keys(groupedData).length > 0">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">🗂️ Grouped Data Structure</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre class="mb-0" style="max-height: 500px; overflow-y: auto;"><code x-text="JSON.stringify(groupedData, null, 2)"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visual Tree Test -->
+        <div class="row" x-show="Object.keys(groupedData).length > 0">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-success text-white d-flex justify-content-between">
+                        <h5 class="mb-0">🌳 Visual Tree Test</h5>
+                        <div>
+                            <button @click="expandAllGroups()" class="btn btn-sm btn-light me-2">Expand All</button>
+                            <button @click="collapseAllGroups()" class="btn btn-sm btn-secondary">Collapse All</button>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-bordered mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 50px">#</th>
+                                    <th>Hierarchy</th>
+                                    <th class="text-end" style="width: 150px">Opening Debet</th>
+                                    <th class="text-end" style="width: 150px">Closing Debet</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <template x-for="(mainCode, mainIndex) in Object.keys(groupedData).sort()" :key="'main-' + mainCode">
+                                    <template>
+                                        <!-- MAIN CATEGORY -->
+                                        <tr class="table-primary fw-bold">
+                                            <td class="text-center">
+                                                <button 
+                                                    @click="toggleGroup('main', mainCode)" 
+                                                    class="btn btn-sm btn-link p-0"
+                                                    type="button">
+                                                    <i class="fas" :class="isGroupExpanded('main', mainCode) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <i class="fas fa-folder text-primary me-2"></i>
+                                                <code class="text-primary" x-text="mainCode"></code>
+                                                <strong class="ms-2" x-text="groupedData[mainCode].desc"></strong>
+                                            </td>
+                                            <td class="text-end" x-text="formatNumber(groupedData[mainCode].totals.opening_debet)"></td>
+                                            <td class="text-end" x-text="formatNumber(groupedData[mainCode].totals.closing_debet)"></td>
+                                        </tr>
+
+                                        <!-- SUB1 CATEGORIES -->
+                                        <template x-if="isGroupExpanded('main', mainCode)">
+                                            <template x-for="(sub1Code, sub1Index) in Object.keys(groupedData[mainCode].sub1).sort()" :key="'sub1-' + mainCode + '-' + sub1Code">
+                                                <template>
+                                                    <tr class="table-info">
+                                                        <td></td>
+                                                        <td class="ps-4">
+                                                            <button 
+                                                                @click="toggleGroup('sub1', mainCode + '-' + sub1Code)" 
+                                                                class="btn btn-sm btn-link p-0"
+                                                                type="button">
+                                                                <i class="fas" :class="isGroupExpanded('sub1', mainCode + '-' + sub1Code) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                                            </button>
+                                                            <i class="fas fa-folder-open text-info me-2"></i>
+                                                            <code class="text-info" x-text="sub1Code"></code>
+                                                            <strong class="ms-2" x-text="groupedData[mainCode].sub1[sub1Code].desc"></strong>
+                                                        </td>
+                                                        <td class="text-end" x-text="formatNumber(groupedData[mainCode].sub1[sub1Code].totals.opening_debet)"></td>
+                                                        <td class="text-end" x-text="formatNumber(groupedData[mainCode].sub1[sub1Code].totals.closing_debet)"></td>
+                                                    </tr>
+
+                                                    <!-- SUB2 CATEGORIES -->
+                                                    <template x-if="isGroupExpanded('sub1', mainCode + '-' + sub1Code)">
+                                                        <template x-for="(sub2Code, sub2Index) in Object.keys(groupedData[mainCode].sub1[sub1Code].sub2).sort()" :key="'sub2-' + mainCode + '-' + sub1Code + '-' + sub2Code">
+                                                            <tr class="table-warning">
+                                                                <td></td>
+                                                                <td class="ps-5">
+                                                                    <i class="fas fa-file-alt text-warning me-2"></i>
+                                                                    <code class="text-warning" x-text="sub2Code"></code>
+                                                                    <strong class="ms-2" x-text="groupedData[mainCode].sub1[sub1Code].sub2[sub2Code].desc"></strong>
+                                                                    <span class="badge bg-secondary ms-2" x-text="groupedData[mainCode].sub1[sub1Code].sub2[sub2Code].items.length + ' items'"></span>
+                                                                </td>
+                                                                <td class="text-end" x-text="formatNumber(groupedData[mainCode].sub1[sub1Code].sub2[sub2Code].totals.opening_debet)"></td>
+                                                                <td class="text-end" x-text="formatNumber(groupedData[mainCode].sub1[sub1Code].sub2[sub2Code].totals.closing_debet)"></td>
+                                                            </tr>
+                                                        </template>
+                                                    </template>
+                                                </template>
+                                            </template>
+                                        </template>
+                                    </template>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expanded Groups State -->
+        <div class="row mt-3" x-show="Object.keys(groupedData).length > 0">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header bg-warning">
+                        <h6 class="mb-0">📊 Expanded Groups State</h6>
+                    </div>
+                    <div class="card-body">
+                        <pre class="mb-0"><code x-text="JSON.stringify(expandedGroups, null, 2)"></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function debugGroup() {
+            return {
+                data: [],
+                groupedData: {},
+                expandedGroups: {
+                    main: {},
+                    sub1: {},
+                    sub2: {}
+                },
+
+                async loadTestData() {
+                    try {
+                        const response = await fetch('http://127.0.0.1:8001/closing/history/data?type=monthly&year=2025');
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            this.data = result.data;
+                            console.log('✅ Data loaded:', this.data.length, 'items');
+                            console.log('Sample item:', this.data[0]);
+                        } else {
+                            alert('Error: ' + result.message);
+                        }
+                    } catch (error) {
+                        console.error('❌ Error loading data:', error);
+                        alert('Error loading data: ' + error.message);
+                    }
+                },
+
+                buildGroupedData() {
+                    console.log('🔨 Building grouped data from', this.data.length, 'items');
+                    const grouped = {};
+                    
+                    this.data.forEach((item, index) => {
+                        const mainCode = item.coa_main_code || 'NULL';
+                        const mainDesc = item.coa_main_desc || 'Tidak Ada Main Category';
+                        const sub1Code = item.coasub1_code || 'NULL';
+                        const sub1Desc = item.coasub1_desc || 'Tidak Ada Sub Category 1';
+                        const sub2Code = item.coasub2_code || 'NULL';
+                        const sub2Desc = item.coasub2_desc || 'Tidak Ada Sub Category 2';
+
+                        console.log(`Item ${index}:`, { mainCode, mainDesc, sub1Code, sub1Desc, sub2Code, sub2Desc });
+
+                        // Initialize main if not exists
+                        if (!grouped[mainCode]) {
+                            grouped[mainCode] = {
+                                desc: mainDesc,
+                                sub1: {},
+                                totals: {
+                                    opening_debet: 0,
+                                    opening_kredit: 0,
+                                    mutasi_debet: 0,
+                                    mutasi_kredit: 0,
+                                    closing_debet: 0,
+                                    closing_kredit: 0,
+                                    transaksi: 0
+                                }
+                            };
+                            console.log(`  ✅ Created main category: ${mainCode}`);
+                        }
+
+                        // Initialize sub1 if not exists
+                        if (!grouped[mainCode].sub1[sub1Code]) {
+                            grouped[mainCode].sub1[sub1Code] = {
+                                desc: sub1Desc,
+                                sub2: {},
+                                totals: {
+                                    opening_debet: 0,
+                                    opening_kredit: 0,
+                                    mutasi_debet: 0,
+                                    mutasi_kredit: 0,
+                                    closing_debet: 0,
+                                    closing_kredit: 0,
+                                    transaksi: 0
+                                }
+                            };
+                            console.log(`    ✅ Created sub1 category: ${sub1Code}`);
+                        }
+
+                        // Initialize sub2 if not exists
+                        if (!grouped[mainCode].sub1[sub1Code].sub2[sub2Code]) {
+                            grouped[mainCode].sub1[sub1Code].sub2[sub2Code] = {
+                                desc: sub2Desc,
+                                items: [],
+                                totals: {
+                                    opening_debet: 0,
+                                    opening_kredit: 0,
+                                    mutasi_debet: 0,
+                                    mutasi_kredit: 0,
+                                    closing_debet: 0,
+                                    closing_kredit: 0,
+                                    transaksi: 0
+                                }
+                            };
+                            console.log(`      ✅ Created sub2 category: ${sub2Code}`);
+                        }
+
+                        // Add item to sub2
+                        grouped[mainCode].sub1[sub1Code].sub2[sub2Code].items.push(item);
+
+                        // Update totals
+                        const amounts = {
+                            opening_debet: parseFloat(item.opening_debet || 0),
+                            opening_kredit: parseFloat(item.opening_kredit || 0),
+                            mutasi_debet: parseFloat(item.mutasi_debet || 0),
+                            mutasi_kredit: parseFloat(item.mutasi_kredit || 0),
+                            closing_debet: parseFloat(item.closing_debet || 0),
+                            closing_kredit: parseFloat(item.closing_kredit || 0),
+                            transaksi: parseInt(item.jumlah_transaksi || 0)
+                        };
+
+                        // Update sub2 totals
+                        Object.keys(amounts).forEach(key => {
+                            grouped[mainCode].sub1[sub1Code].sub2[sub2Code].totals[key] += amounts[key];
+                        });
+
+                        // Update sub1 totals
+                        Object.keys(amounts).forEach(key => {
+                            grouped[mainCode].sub1[sub1Code].totals[key] += amounts[key];
+                        });
+
+                        // Update main totals
+                        Object.keys(amounts).forEach(key => {
+                            grouped[mainCode].totals[key] += amounts[key];
+                        });
+                    });
+
+                    this.groupedData = grouped;
+                    console.log('✅ Grouped data built:', Object.keys(grouped).length, 'main categories');
+                    console.log('Main categories:', Object.keys(grouped));
+                },
+
+                toggleGroup(level, key) {
+                    console.log(`🔄 Toggle ${level}:`, key, 'from', this.expandedGroups[level][key], 'to', !this.expandedGroups[level][key]);
+                    
+                    if (!this.expandedGroups[level][key]) {
+                        this.expandedGroups[level][key] = true;
+                    } else {
+                        this.expandedGroups[level][key] = false;
+                    }
+                    
+                    console.log('New state:', this.expandedGroups[level][key]);
+                },
+
+                isGroupExpanded(level, key) {
+                    const result = this.expandedGroups[level][key] === true;
+                    return result;
+                },
+
+                expandAllGroups() {
+                    console.log('🔓 Expanding all groups...');
+                    Object.keys(this.groupedData).forEach(mainCode => {
+                        this.expandedGroups.main[mainCode] = true;
+                        
+                        Object.keys(this.groupedData[mainCode].sub1).forEach(sub1Code => {
+                            this.expandedGroups.sub1[mainCode + '-' + sub1Code] = true;
+                            
+                            Object.keys(this.groupedData[mainCode].sub1[sub1Code].sub2).forEach(sub2Code => {
+                                this.expandedGroups.sub2[mainCode + '-' + sub1Code + '-' + sub2Code] = true;
+                            });
+                        });
+                    });
+                    console.log('✅ All groups expanded');
+                },
+
+                collapseAllGroups() {
+                    console.log('🔒 Collapsing all groups...');
+                    this.expandedGroups = {
+                        main: {},
+                        sub1: {},
+                        sub2: {}
+                    };
+                    console.log('✅ All groups collapsed');
+                },
+
+                formatNumber(num) {
+                    if (!num) return '0.00';
+                    return parseFloat(num).toLocaleString('id-ID', { 
+                        minimumFractionDigits: 2, 
+                        maximumFractionDigits: 2 
+                    });
+                }
+            };
+        }
+    </script>
+</body>
+</html>

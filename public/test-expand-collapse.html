@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpine.js Reactivity Test - Expand/Collapse All</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-light">
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4">🧪 Test: Expand/Collapse All Functionality</h2>
+                
+                <div class="alert alert-info">
+                    <strong>Test Instruksi:</strong>
+                    <ol class="mb-0">
+                        <li>Klik tombol "Toggle All" atau ikon di header table</li>
+                        <li>Semua row harus expand/collapse bersamaan</li>
+                        <li>Ikon harus berubah: <i class="fas fa-chevron-down"></i> (expanded) / <i class="fas fa-chevron-right"></i> (collapsed)</li>
+                        <li>Cek debug info di bawah untuk memverifikasi state</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <div x-data="testCollapse()" class="row">
+            <div class="col-12">
+                <!-- Control Panel -->
+                <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Control Panel</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex gap-3 align-items-center">
+                            <button @click="toggleAllHierarchy()" class="btn btn-primary">
+                                <i class="fas" :class="allExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                Toggle All (<span x-text="allExpanded ? 'Collapse' : 'Expand'"></span>)
+                            </button>
+                            
+                            <div class="badge" :class="allExpanded ? 'bg-success' : 'bg-secondary'" style="font-size: 1rem; padding: 0.5rem 1rem;">
+                                Status: <strong x-text="allExpanded ? 'ALL EXPANDED' : 'ALL COLLAPSED'"></strong>
+                            </div>
+
+                            <div class="ms-auto">
+                                <span class="text-muted">Expanded Count: </span>
+                                <strong x-text="data.filter(i => i.hierarchyExpanded).length"></strong>
+                                <span class="text-muted"> / </span>
+                                <strong x-text="data.length"></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Test Table -->
+                <div class="card">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            Data Table
+                            <button @click="toggleAllHierarchy()" class="btn btn-sm btn-link p-0 ms-2" type="button" title="Expand/Collapse All">
+                                <i class="fas" :class="allExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                            </button>
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 50px">#</th>
+                                        <th style="width: 120px">COA Code</th>
+                                        <th>COA Description</th>
+                                        <th style="width: 100px" class="text-center">State</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="(item, index) in data" :key="item.id">
+                                        <tr>
+                                            <td class="text-center text-muted" x-text="index + 1"></td>
+                                            <td><code x-text="item.coa_code"></code></td>
+                                            <td>
+                                                <div class="d-flex align-items-start">
+                                                    <button 
+                                                        @click="item.hierarchyExpanded = !item.hierarchyExpanded" 
+                                                        class="btn btn-sm btn-link p-0 me-2" 
+                                                        type="button"
+                                                        :title="item.hierarchyExpanded ? 'Collapse' : 'Expand'">
+                                                        <i class="fas" :class="item.hierarchyExpanded ? 'fa-chevron-down text-success' : 'fa-chevron-right text-muted'"></i>
+                                                    </button>
+                                                    <div class="flex-grow-1">
+                                                        <div x-text="item.coa_desc" class="fw-bold"></div>
+                                                        
+                                                        <!-- Hierarchy Details -->
+                                                        <div x-show="item.hierarchyExpanded" 
+                                                             x-transition:enter="transition ease-out duration-200"
+                                                             x-transition:enter-start="opacity-0 transform scale-95"
+                                                             x-transition:enter-end="opacity-100 transform scale-100"
+                                                             x-transition:leave="transition ease-in duration-150"
+                                                             x-transition:leave-start="opacity-100 transform scale-100"
+                                                             x-transition:leave-end="opacity-0 transform scale-95"
+                                                             class="mt-2 pt-2 border-top bg-light p-2 rounded">
+                                                            
+                                                            <div class="mb-2">
+                                                                <small class="text-muted d-block">
+                                                                    <i class="fas fa-folder text-primary"></i> Main Category:
+                                                                </small>
+                                                                <div class="ms-3">
+                                                                    <code class="text-primary" x-text="item.coa_main_code"></code>
+                                                                    <span class="ms-1" x-text="item.coa_main_desc"></span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div class="mb-2">
+                                                                <small class="text-muted d-block">
+                                                                    <i class="fas fa-folder-open text-info"></i> Sub Category 1:
+                                                                </small>
+                                                                <div class="ms-3">
+                                                                    <code class="text-info" x-text="item.coasub1_code"></code>
+                                                                    <span class="ms-1" x-text="item.coasub1_desc"></span>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            <div>
+                                                                <small class="text-muted d-block">
+                                                                    <i class="fas fa-file-alt text-warning"></i> Sub Category 2:
+                                                                </small>
+                                                                <div class="ms-3">
+                                                                    <code class="text-warning" x-text="item.coasub2_code"></code>
+                                                                    <span class="ms-1" x-text="item.coasub2_desc"></span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge" :class="item.hierarchyExpanded ? 'bg-success' : 'bg-secondary'">
+                                                    <i class="fas" :class="item.hierarchyExpanded ? 'fa-eye' : 'fa-eye-slash'"></i>
+                                                    <span x-text="item.hierarchyExpanded ? 'Expanded' : 'Collapsed'"></span>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Debug Info -->
+                <div class="card mt-3">
+                    <div class="card-header bg-dark text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-bug"></i> Debug Information
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Global State:</h6>
+                                <table class="table table-sm table-bordered">
+                                    <tr>
+                                        <td><code>allExpanded</code></td>
+                                        <td>
+                                            <strong x-text="allExpanded" :class="allExpanded ? 'text-success' : 'text-secondary'"></strong>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>data.length</code></td>
+                                        <td><strong x-text="data.length"></strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td><code>expandedCount</code></td>
+                                        <td>
+                                            <strong x-text="data.filter(i => i.hierarchyExpanded).length"></strong>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Item States:</h6>
+                                <div class="bg-dark text-light p-2 rounded" style="font-family: monospace; font-size: 0.85rem; max-height: 200px; overflow-y: auto;">
+                                    <pre class="mb-0 text-light" x-text="JSON.stringify(
+                                        data.map(i => ({ 
+                                            id: i.id, 
+                                            code: i.coa_code, 
+                                            expanded: i.hierarchyExpanded 
+                                        })), 
+                                        null, 
+                                        2
+                                    )"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function testCollapse() {
+            return {
+                allExpanded: false,
+                data: [
+                    {
+                        id: 1,
+                        coa_code: '1010101',
+                        coa_desc: 'Kas Kecil',
+                        coa_main_code: '1',
+                        coa_main_desc: 'Aktiva',
+                        coasub1_code: '101',
+                        coasub1_desc: 'Aktiva Lancar',
+                        coasub2_code: '10101',
+                        coasub2_desc: 'Kas',
+                        hierarchyExpanded: false
+                    },
+                    {
+                        id: 2,
+                        coa_code: '1010102',
+                        coa_desc: 'Kas Besar',
+                        coa_main_code: '1',
+                        coa_main_desc: 'Aktiva',
+                        coasub1_code: '101',
+                        coasub1_desc: 'Aktiva Lancar',
+                        coasub2_code: '10101',
+                        coasub2_desc: 'Kas',
+                        hierarchyExpanded: false
+                    },
+                    {
+                        id: 3,
+                        coa_code: '1010201',
+                        coa_desc: 'Bank BRI',
+                        coa_main_code: '1',
+                        coa_main_desc: 'Aktiva',
+                        coasub1_code: '101',
+                        coasub1_desc: 'Aktiva Lancar',
+                        coasub2_code: '10102',
+                        coasub2_desc: 'Bank',
+                        hierarchyExpanded: false
+                    },
+                    {
+                        id: 4,
+                        coa_code: '2010101',
+                        coa_desc: 'Hutang Usaha',
+                        coa_main_code: '2',
+                        coa_main_desc: 'Passiva',
+                        coasub1_code: '201',
+                        coasub1_desc: 'Hutang Lancar',
+                        coasub2_code: '20101',
+                        coasub2_desc: 'Hutang Jangka Pendek',
+                        hierarchyExpanded: false
+                    },
+                    {
+                        id: 5,
+                        coa_code: '4010101',
+                        coa_desc: 'Pendapatan Jasa',
+                        coa_main_code: '4',
+                        coa_main_desc: 'Pendapatan',
+                        coasub1_code: '401',
+                        coasub1_desc: 'Pendapatan Usaha',
+                        coasub2_code: '40101',
+                        coasub2_desc: 'Pendapatan Operasional',
+                        hierarchyExpanded: false
+                    }
+                ],
+
+                toggleAllHierarchy() {
+                    console.log('🔄 toggleAllHierarchy() called');
+                    console.log('📊 Before - allExpanded:', this.allExpanded);
+                    console.log('📊 Before - Items:', this.data.map(i => ({ code: i.coa_code, expanded: i.hierarchyExpanded })));
+                    
+                    this.allExpanded = !this.allExpanded;
+                    
+                    console.log('📊 After toggle - allExpanded:', this.allExpanded);
+                    
+                    // Update each item's hierarchyExpanded property
+                    this.data.forEach((item, index) => {
+                        console.log(`  ➡️ Updating item ${index} (${item.coa_code}) to:`, this.allExpanded);
+                        item.hierarchyExpanded = this.allExpanded;
+                    });
+                    
+                    console.log('✅ After - Items:', this.data.map(i => ({ code: i.coa_code, expanded: i.hierarchyExpanded })));
+                    console.log('📈 Expanded count:', this.data.filter(i => i.hierarchyExpanded).length, '/', this.data.length);
+                }
+            };
+        }
+    </script>
+</body>
+</html>

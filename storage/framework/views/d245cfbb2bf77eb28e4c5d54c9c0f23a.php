@@ -118,6 +118,16 @@
                     </a>
                 </div>
 
+                <!-- Closing Menu -->
+                <div class="mt-3">
+                    <small class="text-white-50 px-3 text-uppercase">Periode Closing</small>
+                    
+                    <a href="<?php echo e(route('closing.process')); ?>" class="nav-link <?php echo e(request()->routeIs('closing.*') ? 'active' : ''); ?>">
+                        <i class="fas fa-lock"></i>
+                        <span>Closing Process</span>
+                    </a>
+                </div>
+
                 <!-- Master Menu -->
                 <div class="mt-3">
                     <small class="text-white-50 px-3 text-uppercase">Master</small>

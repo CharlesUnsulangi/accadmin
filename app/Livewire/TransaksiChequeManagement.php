@@ -87,7 +87,7 @@ class TransaksiChequeManagement extends Component
             // Get jurnal data if transmaincode exists
             if (!empty($transaction->transcheque_transmaincode)) {
                 $this->jurnalData = DB::table('tr_acc_transaksi_coa')
-                    ->leftJoin('ms_acc_coa', 'tr_acc_transaksi_coa.transcoa_coa', '=', 'ms_acc_coa.coa_code')
+                    ->leftJoin('ms_acc_coa', 'tr_acc_transaksi_coa.transcoa_coa_code', '=', 'ms_acc_coa.coa_code')
                     ->where('tr_acc_transaksi_coa.transcoa_transaksi_main_code', $transaction->transcheque_transmaincode)
                     ->where('tr_acc_transaksi_coa.rec_comcode', $comcode)
                     ->where('tr_acc_transaksi_coa.rec_areacode', $areacode)
