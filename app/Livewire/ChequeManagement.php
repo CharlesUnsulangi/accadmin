@@ -187,6 +187,9 @@ class ChequeManagement extends Component
                 'rec_dateupdate' => now(),
             ]);
             session()->flash('message', 'Buku cheque berhasil diupdate.');
+            
+            // Close modal after edit
+            $this->closeModal();
         } else {
             $cheque = ChequeH::create([
                 'cheque_code_h' => $this->cheque_code_h,
@@ -206,22 +209,35 @@ class ChequeManagement extends Component
             ]);
 
             // Generate cheque details if start and end numbers are provided
+            $chequeCount = 0;
             if ($this->cheque_startno && $this->cheque_endno && $this->cheque_startno <= $this->cheque_endno) {
-                $this->generateChequeDetails($cheque);
+                $chequeCount = $this->generateChequeDetails($cheque);
             }
 
-            session()->flash('message', 'Buku cheque berhasil ditambahkan.');
+            $message = 'Buku cheque berhasil ditambahkan.';
+            if ($chequeCount > 0) {
+                $message .= " Total {$chequeCount} lembar cek telah di-generate.";
+            }
+            session()->flash('message', $message);
+            
+            // Reset form for new entry, but keep modal open
+            $this->reset(['cheque_code_h', 'cheque_desc', 'cheque_bank', 
+                          'cheque_rek', 'cheque_cabang', 'cheque_coacode', 
+                          'cheque_type', 'cheque_startno', 'cheque_endno']);
+            // Keep modal open for continuous data entry
+            $this->showModal = true;
         }
 
-        $this->closeModal();
         $this->resetPage();
     }
 
     /**
      * Generate cheque details based on start and end numbers
+     * @return int Number of cheques generated
      */
     private function generateChequeDetails($cheque)
     {
+        $count = 0;
         for ($i = $this->cheque_startno; $i <= $this->cheque_endno; $i++) {
             ChequeD::create([
                 'cheque_code_d' => $cheque->cheque_code_h . '-' . str_pad($i, 6, '0', STR_PAD_LEFT),
@@ -235,7 +251,9 @@ class ChequeManagement extends Component
                 'rec_dateupdate' => now(),
                 'rec_status' => '1',
             ]);
+            $count++;
         }
+        return $count;
     }
 
     /**

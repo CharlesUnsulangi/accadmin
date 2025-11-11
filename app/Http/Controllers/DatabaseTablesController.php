@@ -129,14 +129,14 @@ class DatabaseTablesController extends Controller
             $query = DB::table('tr_admin_it_aplikasi_table')
                 ->select(
                     'tr_aplikasi_table_id',
-                    'table_name',
-                    'table_schema',
+                    DB::raw('CAST(table_name AS NVARCHAR(MAX)) as table_name'),
+                    DB::raw('CAST(table_schema AS NVARCHAR(MAX)) as table_schema'),
                     'record',
                     'record_date_start',
                     'record_date_last',
                     'date_updated',
-                    'note_schema',
-                    'table_note',
+                    DB::raw('CAST(note_schema AS NVARCHAR(MAX)) as note_schema'),
+                    DB::raw('CAST(table_note AS NVARCHAR(MAX)) as table_note'),
                     'cek_priority'
                 );
             
@@ -158,13 +158,33 @@ class DatabaseTablesController extends Controller
                 $query->orderByRaw("CAST([{$sortBy}] AS VARCHAR(MAX)) {$sortDirection}");
             } elseif ($sortBy === 'cek_priority') {
                 $query->orderBy('cek_priority', $sortDirection);
+            } elseif (in_array($sortBy, ['record', 'record_date_start', 'record_date_last', 'date_updated'])) {
+                // Explicit handling for numeric and date columns
+                $query->orderBy($sortBy, $sortDirection);
             } else {
+                // Default fallback
                 $query->orderBy($sortBy, $sortDirection);
             }
             
             // Pagination
             $offset = ($page - 1) * $perPage;
             $data = $query->skip($offset)->take($perPage)->get();
+            
+            // Ensure data is properly encoded for JSON
+            $data = $data->map(function($item) {
+                return [
+                    'tr_aplikasi_table_id' => $item->tr_aplikasi_table_id,
+                    'table_name' => $item->table_name ?? '',
+                    'table_schema' => $item->table_schema ?? '',
+                    'record' => $item->record ?? 0,
+                    'record_date_start' => $item->record_date_start,
+                    'record_date_last' => $item->record_date_last,
+                    'date_updated' => $item->date_updated,
+                    'note_schema' => $item->note_schema ?? '',
+                    'table_note' => $item->table_note ?? '',
+                    'cek_priority' => $item->cek_priority ?? 0
+                ];
+            });
             
             // Get stats
             $stats = [
@@ -181,13 +201,13 @@ class DatabaseTablesController extends Controller
                 'last_page' => ceil($total / $perPage),
                 'per_page' => (int)$perPage,
                 'stats' => $stats
-            ]);
+            ], 200, [], JSON_UNESCAPED_UNICODE);
             
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+                'message' => 'Error loading data: ' . $e->getMessage()
+            ], 500, [], JSON_UNESCAPED_UNICODE);
         }
     }
     
@@ -254,20 +274,20 @@ class DatabaseTablesController extends Controller
             
             return response()->json([
                 'success' => true,
-                'message' => "Metadata for {$tableName} updated!",
+                'message' => "Metadata for {$tableName} updated successfully!",
                 'data' => [
                     'record' => $count,
-                    'record_date_start' => $dateStart,
-                    'record_date_last' => $dateLast,
-                    'date_updated' => now()
+                    'record_date_start' => $dateStart ? $dateStart->format('Y-m-d') : null,
+                    'record_date_last' => $dateLast ? $dateLast->format('Y-m-d') : null,
+                    'date_updated' => now()->format('Y-m-d H:i:s')
                 ]
-            ]);
+            ], 200, [], JSON_UNESCAPED_UNICODE);
             
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+                'message' => 'Error updating metadata: ' . $e->getMessage()
+            ], 500, [], JSON_UNESCAPED_UNICODE);
         }
     }
     
@@ -372,19 +392,19 @@ class DatabaseTablesController extends Controller
             
             return response()->json([
                 'success' => true,
-                'message' => "Metadata updated! Added: {$added}, Updated: {$updated}",
+                'message' => "Metadata updated successfully! Added: {$added}, Updated: {$updated}",
                 'data' => [
                     'added' => $added,
                     'updated' => $updated,
                     'total' => count($tables)
                 ]
-            ]);
+            ], 200, [], JSON_UNESCAPED_UNICODE);
             
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
+                'message' => 'Error updating metadata: ' . $e->getMessage()
+            ], 500, [], JSON_UNESCAPED_UNICODE);
         }
     }
     
@@ -566,6 +586,201 @@ class DatabaseTablesController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Scan database for new tables (SAFE - READ ONLY)
+     * Shows tables that are NOT registered yet
+     */
+    public function scanNewTables()
+    {
+        try {
+            // Get all tables from database
+            $allTables = DB::select("
+                SELECT 
+                    TABLE_NAME,
+                    TABLE_SCHEMA,
+                    (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = t.TABLE_NAME) as COLUMN_COUNT
+                FROM INFORMATION_SCHEMA.TABLES t
+                WHERE TABLE_TYPE = 'BASE TABLE'
+                AND TABLE_SCHEMA = 'dbo'
+                ORDER BY TABLE_NAME
+            ");
+
+            // Get existing tables in metadata
+            $existingTables = DB::table('tr_admin_it_aplikasi_table')
+                ->select(DB::raw('CAST(table_name AS VARCHAR(MAX)) as table_name'))
+                ->pluck('table_name')
+                ->toArray();
+
+            // Find new tables (not in metadata)
+            $newTables = [];
+            foreach ($allTables as $table) {
+                if (!in_array($table->TABLE_NAME, $existingTables)) {
+                    // Get row count for new table
+                    try {
+                        $rowCount = DB::table($table->TABLE_NAME)->count();
+                    } catch (\Exception $e) {
+                        $rowCount = 0;
+                    }
+
+                    $newTables[] = [
+                        'table_name' => $table->TABLE_NAME,
+                        'table_schema' => $table->TABLE_SCHEMA,
+                        'column_count' => $table->COLUMN_COUNT,
+                        'record_count' => $rowCount
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_db_tables' => count($allTables),
+                    'registered_tables' => count($existingTables),
+                    'new_tables' => count($newTables),
+                    'tables' => $newTables
+                ],
+                'message' => count($newTables) > 0 
+                    ? 'Ditemukan ' . count($newTables) . ' tabel baru yang belum terdaftar'
+                    : 'Semua tabel sudah terdaftar di metadata'
+            ], 200, [], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error scanning tables: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Add new table to metadata (SAFE - ONLY INSERT NEW, NO DELETE)
+     * Only adds tables that truly don't exist in metadata yet
+     */
+    public function addNewTable(Request $request)
+    {
+        try {
+            $tableName = $request->table_name;
+
+            // Validate table exists in database
+            $tableExists = DB::select("
+                SELECT COUNT(*) as count
+                FROM INFORMATION_SCHEMA.TABLES
+                WHERE TABLE_NAME = ? AND TABLE_SCHEMA = 'dbo'
+            ", [$tableName]);
+
+            if ($tableExists[0]->count == 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tabel tidak ditemukan di database'
+                ], 404);
+            }
+
+            // Check if already registered (SAFETY CHECK)
+            $exists = DB::table('tr_admin_it_aplikasi_table')
+                ->whereRaw("CAST(table_name AS VARCHAR(MAX)) = ?", [$tableName])
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tabel sudah terdaftar di metadata. Tidak bisa insert duplikat.'
+                ], 400);
+            }
+
+            // Generate unique ID (same pattern as populate_table_metadata.php)
+            $tableId = 'TBL-' . strtoupper(substr(md5($tableName . time()), 0, 10));
+            
+            // Get table info
+            $rowCount = DB::table($tableName)->count();
+            
+            // Get date range - try multiple date columns
+            $dateStart = null;
+            $dateLast = null;
+            
+            $dateColumns = DB::select("
+                SELECT COLUMN_NAME, DATA_TYPE, ORDINAL_POSITION
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_NAME = ? 
+                AND DATA_TYPE IN ('date', 'datetime', 'datetime2', 'smalldatetime')
+                ORDER BY ORDINAL_POSITION
+            ", [$tableName]);
+
+            if (!empty($dateColumns) && $rowCount > 0) {
+                // Try multiple date columns to find the best one
+                foreach ($dateColumns as $col) {
+                    $dateColumn = $col->COLUMN_NAME;
+                    
+                    try {
+                        $dateRange = DB::table($tableName)
+                            ->selectRaw("
+                                MIN(CAST([{$dateColumn}] AS DATE)) as min_date, 
+                                MAX(CAST([{$dateColumn}] AS DATE)) as max_date
+                            ")
+                            ->whereNotNull($dateColumn)
+                            ->first();
+                        
+                        if ($dateRange && $dateRange->min_date) {
+                            $dateStart = $dateRange->min_date;
+                            $dateLast = $dateRange->max_date;
+                            break; // Found valid date range, stop looking
+                        }
+                    } catch (\Exception $e) {
+                        continue; // Try next column
+                    }
+                }
+            }
+
+            // Determine table category
+            $tableNote = '';
+            if (str_starts_with($tableName, 'ms_')) {
+                $tableNote = 'Master Data';
+            } elseif (str_starts_with($tableName, 'tr_')) {
+                $tableNote = 'Transaction Data';
+            } elseif (str_starts_with($tableName, 'vw_')) {
+                $tableNote = 'View';
+            } elseif (str_starts_with($tableName, 'sp_')) {
+                $tableNote = 'Stored Procedure';
+            } else {
+                $tableNote = 'System Table';
+            }
+
+            // INSERT NEW TABLE to metadata (SAFE - only for truly new tables)
+            DB::table('tr_admin_it_aplikasi_table')->insert([
+                'tr_aplikasi_table_id' => $tableId,
+                'ms_aplikasi_id' => null,
+                'table_name' => $tableName,
+                'table_schema' => 'dbo',
+                'record' => $rowCount,
+                'record_date_start' => $dateStart,
+                'record_date_last' => $dateLast,
+                'date_updated' => now()->format('Y-m-d'),
+                'time_created' => now()->format('H:i:s'),
+                'user_created' => 'SYSTEM_SYNC',
+                'note_schema' => 'Auto-added via table sync',
+                'table_note' => $tableNote,
+                'cek_priority' => 0,
+                'id' => null
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Tabel baru '{$tableName}' berhasil ditambahkan ke metadata",
+                'data' => [
+                    'table_id' => $tableId,
+                    'table_name' => $tableName,
+                    'record_count' => $rowCount,
+                    'category' => $tableNote
+                ]
+            ], 200, [], JSON_UNESCAPED_UNICODE);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error adding table: ' . $e->getMessage()
             ], 500);
         }
     }

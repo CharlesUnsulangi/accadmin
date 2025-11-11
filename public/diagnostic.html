@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Topics Feature Diagnostics</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+        .test { margin: 10px 0; padding: 10px; background: white; border-left: 4px solid #ddd; }
+        .pass { border-color: green; }
+        .fail { border-color: red; }
+        .info { border-color: blue; }
+        h3 { margin-top: 20px; }
+        pre { background: #f0f0f0; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Topics Feature Diagnostics</h1>
+    <p>Testing all components of the expandable topics feature...</p>
+    
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(title, status, details = '') {
+            const div = document.createElement('div');
+            div.className = `test ${status}`;
+            div.innerHTML = `
+                <strong>${status === 'pass' ? '✅' : status === 'fail' ? '❌' : 'ℹ️'} ${title}</strong>
+                ${details ? `<pre>${details}</pre>` : ''}
+            `;
+            results.appendChild(div);
+        }
+
+        async function runTests() {
+            addResult('Starting diagnostics...', 'info');
+            
+            // Test 1: Check if API route exists
+            addResult('Test 1: Checking API endpoint', 'info');
+            try {
+                const response = await fetch('/api/applications/APP-946965A2C5/topics');
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult(
+                        'API endpoint is accessible', 
+                        'pass', 
+                        `Status: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`
+                    );
+                } else {
+                    addResult('API endpoint returned error', 'fail', `Status: ${response.status}`);
+                }
+            } catch (error) {
+                addResult('Cannot reach API endpoint', 'fail', error.message);
+            }
+            
+            // Test 2: Check if Alpine.js is loaded
+            addResult('Test 2: Checking Alpine.js', 'info');
+            if (typeof Alpine !== 'undefined') {
+                addResult('Alpine.js is loaded', 'pass', `Version: ${Alpine.version || 'Unknown'}`);
+            } else {
+                addResult('Alpine.js is NOT loaded', 'fail', 'Check CDN link in view file');
+            }
+            
+            // Test 3: Check if Bootstrap is loaded
+            addResult('Test 3: Checking Bootstrap', 'info');
+            if (typeof bootstrap !== 'undefined' || document.querySelector('[class*="bootstrap"]')) {
+                addResult('Bootstrap CSS is loaded', 'pass');
+            } else {
+                addResult('Bootstrap might not be loaded', 'fail');
+            }
+            
+            // Test 4: Check if Font Awesome is loaded
+            addResult('Test 4: Checking Font Awesome', 'info');
+            if (document.querySelector('[class*="fa-"]')) {
+                addResult('Font Awesome is loaded', 'pass');
+            } else {
+                addResult('Font Awesome might not be loaded', 'fail');
+            }
+            
+            // Test 5: Try POST request (will fail without CSRF token, but shows if route exists)
+            addResult('Test 5: Checking POST endpoint', 'info');
+            try {
+                const response = await fetch('/api/applications/APP-946965A2C5/topics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic_desc: 'Test', value_priority: 1 })
+                });
+                
+                if (response.status === 419) {
+                    addResult('POST endpoint exists (CSRF token missing - this is OK)', 'pass');
+                } else if (response.ok) {
+                    addResult('POST endpoint works', 'pass');
+                } else {
+                    const text = await response.text();
+                    addResult('POST endpoint issue', 'info', `Status: ${response.status}\n${text.substring(0, 200)}`);
+                }
+            } catch (error) {
+                addResult('POST endpoint check failed', 'fail', error.message);
+            }
+            
+            addResult('Diagnostics complete!', 'info', 
+                'If all tests pass, the feature should work.\n' +
+                'If you still cannot see topics:\n' +
+                '1. Clear browser cache (Ctrl+Shift+Delete)\n' +
+                '2. Hard refresh (Ctrl+F5)\n' +
+                '3. Check browser console (F12) for JavaScript errors\n' +
+                '4. Make sure you clicked the chevron (▶) button to expand'
+            );
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

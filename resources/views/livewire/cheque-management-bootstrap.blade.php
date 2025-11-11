@@ -9,9 +9,9 @@
             <p class="text-muted mb-0">Kelola buku cheque dan lembar-lembar cek</p>
         </div>
         <div>
-            <button wire:click="create" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Tambah Buku Cheque
-            </button>
+            <a href="{{ route('cheque.create') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Tambah Buku Cheque Baru
+            </a>
         </div>
     </div>
 

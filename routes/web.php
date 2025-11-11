@@ -11,9 +11,20 @@ Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'ind
     ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-Route::get('/overview', function () {
-    return view('overview');
-})->middleware(['auth', 'verified'])->name('overview');
+// Dashboard - Accounting
+Route::get('/dashboard/accounting', [\App\Http\Controllers\DashboardController::class, 'accounting'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard.accounting');
+
+// Dashboard - Admin IT
+Route::get('/dashboard/admin-it', [\App\Http\Controllers\DashboardController::class, 'adminIt'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard.admin.it');
+
+// System Overview (Alpine.js)
+Route::get('/overview', [\App\Http\Controllers\DashboardController::class, 'overview'])
+    ->middleware(['auth', 'verified'])
+    ->name('overview');
 
 // COA Pure JavaScript (No Authentication Required)
 Route::prefix('coa-js')->name('coa.js.')->group(function () {
@@ -58,22 +69,36 @@ Route::middleware('auth')->group(function () {
     // Cheque Management - BOOTSTRAP VERSION
     Route::get('/cheque-management', \App\Livewire\ChequeManagement::class)->name('cheque.management');
     
+    // Cheque Create - Alpine.js Version (New Page)
+    Route::get('/cheque/create', [\App\Http\Controllers\ChequeController::class, 'create'])->name('cheque.create');
+    
     // Transaksi Cheque - BOOTSTRAP VERSION
     Route::get('/transaksi-cheque', \App\Livewire\TransaksiChequeManagement::class)->name('transaksi.cheque');
     
-    // Master Data - Bank
-    Route::get('/master-bank', \App\Livewire\BankManagement::class)->name('master.bank');
+    // ========================================
+    // MASTER DATA ROUTES (Alpine.js + API)
+    // ========================================
     
-    // Master Data - Area
-    Route::get('/master-area', \App\Livewire\AreaManagement::class)->name('master.area');
+    // Master Data Dashboard
+    Route::get('/master', [\App\Http\Controllers\MasterDataController::class, 'dashboard'])->name('master.dashboard');
     
-    // Master Data - Vendor
-    Route::get('/master-vendor', \App\Livewire\VendorManagement::class)->name('master.vendor');
+    // Master Data - Bank (Alpine.js)
+    Route::get('/master/bank', function() {
+        return view('master.bank');
+    })->name('master.bank');
     
-    // Master Data - Transaksi
+    // Master Data - Area (Alpine.js) 
+    Route::get('/master/area', function() {
+        return view('master.area');
+    })->name('master.area');
+    
+    // Master Data - Vendor (Alpine.js)
+    Route::get('/master/vendor', function() {
+        return view('master.vendor');
+    })->name('master.vendor');
+    
+    // Old Livewire routes (keep for backward compatibility)
     Route::get('/master-transaksi', \App\Livewire\TransaksiManagement::class)->name('master.transaksi');
-    
-    // Master Data - Status Cheque
     Route::get('/master-status-cheque', \App\Livewire\StatusChequeManagement::class)->name('master.statuscheque');
     
     // IT Documentation - BOOTSTRAP VERSION
@@ -89,6 +114,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/database-tables', [\App\Http\Controllers\DatabaseTablesController::class, 'index'])->name('database.tables');
     Route::get('/table-detail/{tableName}', [\App\Http\Controllers\DatabaseTablesController::class, 'detail'])->name('table.detail');
     
+    // Application Management (Diagnostic Tool)
+    Route::get('/applications', [\App\Http\Controllers\ApplicationController::class, 'index'])->name('applications.index');
+    Route::get('/applications/{id}', [\App\Http\Controllers\ApplicationController::class, 'show'])->name('applications.show');
+    
     // Database Tables API endpoints
     Route::prefix('api/database-tables')->group(function () {
         Route::get('/data', [\App\Http\Controllers\DatabaseTablesController::class, 'getData']);
@@ -96,10 +125,54 @@ Route::middleware('auth')->group(function () {
         Route::post('/update-all-metadata', [\App\Http\Controllers\DatabaseTablesController::class, 'updateAllMetadata']);
         Route::post('/toggle-priority/{tableId}', [\App\Http\Controllers\DatabaseTablesController::class, 'togglePriority']);
         
+        // Sync & Scan endpoints (SAFE - INSERT NEW ONLY, NO DELETE)
+        Route::get('/scan-new-tables', [\App\Http\Controllers\DatabaseTablesController::class, 'scanNewTables']);
+        Route::post('/add-new-table', [\App\Http\Controllers\DatabaseTablesController::class, 'addNewTable']);
+        
         // Message endpoints
         Route::get('/messages/{tableId}', [\App\Http\Controllers\DatabaseTablesController::class, 'getMessages']);
         Route::post('/add-message', [\App\Http\Controllers\DatabaseTablesController::class, 'addMessage']);
         Route::delete('/delete-message/{messageId}', [\App\Http\Controllers\DatabaseTablesController::class, 'deleteMessage']);
+    });
+    
+    // Master Data API endpoints
+    Route::prefix('api/master')->group(function () {
+        Route::get('/stats', [\App\Http\Controllers\MasterDataController::class, 'getStats']);
+        
+        // Bank API
+        Route::get('/bank/data', [\App\Http\Controllers\MasterDataController::class, 'getBankData']);
+        Route::post('/bank/store', [\App\Http\Controllers\MasterDataController::class, 'storeBank']);
+        Route::put('/bank/{code}', [\App\Http\Controllers\MasterDataController::class, 'updateBank']);
+        Route::delete('/bank/{code}', [\App\Http\Controllers\MasterDataController::class, 'deleteBank']);
+        Route::get('/bank/export', [\App\Http\Controllers\MasterDataController::class, 'exportBank']);
+    });
+
+    // Application Management API endpoints
+    Route::prefix('api/applications')->group(function () {
+        Route::get('/data', [\App\Http\Controllers\ApplicationController::class, 'getData']);
+        Route::get('/stats', [\App\Http\Controllers\ApplicationController::class, 'getStats']);
+        Route::post('/store', [\App\Http\Controllers\ApplicationController::class, 'store']);
+        Route::put('/update/{id}', [\App\Http\Controllers\ApplicationController::class, 'update']);
+        Route::post('/toggle-status/{id}', [\App\Http\Controllers\ApplicationController::class, 'toggleStatus']);
+        // NO DELETE - hanya toggle status
+        
+        // Application Topics (one-to-many relationship)
+        Route::get('/{id}/topics', [\App\Http\Controllers\ApplicationController::class, 'getTopics']);
+        Route::post('/{id}/topics', [\App\Http\Controllers\ApplicationController::class, 'storeTopic']);
+        Route::put('/{id}/topics/{topicId}', [\App\Http\Controllers\ApplicationController::class, 'updateTopic']);
+        Route::delete('/{id}/topics/{topicId}', [\App\Http\Controllers\ApplicationController::class, 'deleteTopic']);
+    });
+
+    // Dashboard API endpoints
+    Route::prefix('api/dashboard')->group(function () {
+        Route::get('/accounting-stats', [\App\Http\Controllers\DashboardController::class, 'getAccountingStats']);
+        Route::get('/admin-it-stats', [\App\Http\Controllers\DashboardController::class, 'getAdminItStats']);
+        Route::get('/overview-stats', [\App\Http\Controllers\DashboardController::class, 'getOverviewStats']);
+    });
+
+    // Cheque API endpoints
+    Route::prefix('api/cheque')->group(function () {
+        Route::post('/store', [\App\Http\Controllers\ChequeController::class, 'store']);
     });
     
     // Table Column API endpoints

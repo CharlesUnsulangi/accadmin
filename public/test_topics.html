@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Topics Feature</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5" x-data="testData()">
+        <div class="card">
+            <div class="card-header">
+                <h4>Test Expandable Topics Feature</h4>
+                <small class="text-muted">Click chevron to expand and see topics</small>
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th width="50"></th>
+                            <th>Application</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="app in applications" :key="app.id">
+                            <>
+                                <!-- Main Row -->
+                                <tr>
+                                    <td>
+                                        <button class="btn btn-sm btn-link" @click="toggleExpand(app.id)">
+                                            <i class="fas" :class="expandedRows.includes(app.id) ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                                        </button>
+                                    </td>
+                                    <td x-text="app.name"></td>
+                                    <td>
+                                        <span class="badge bg-success">Active</span>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Expanded Row -->
+                                <tr x-show="expandedRows.includes(app.id)" x-transition class="bg-light">
+                                    <td colspan="3" class="p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-list"></i> Topics
+                                                <span class="badge bg-info ms-2" x-text="(app.topics || []).length"></span>
+                                            </h6>
+                                            <button class="btn btn-sm btn-outline-success" 
+                                                    @click="startAddTopic(app)"
+                                                    x-show="app.topicsLoaded && !app.addingTopic">
+                                                <i class="fas fa-plus"></i> Add Topic
+                                            </button>
+                                        </div>
+                                        
+                                        <!-- Loading -->
+                                        <div x-show="!app.topicsLoaded" class="text-center py-2">
+                                            <div class="spinner-border spinner-border-sm"></div>
+                                            <small class="ms-2">Loading...</small>
+                                        </div>
+                                        
+                                        <!-- Add Form -->
+                                        <div x-show="app.addingTopic" x-transition class="card card-body bg-white mb-2 p-2">
+                                            <form @submit.prevent="saveTopic(app)">
+                                                <div class="row g-2">
+                                                    <div class="col-md-7">
+                                                        <input type="text" class="form-control form-control-sm" 
+                                                               x-model="app.newTopicDesc"
+                                                               placeholder="Topic description" required>
+                                                    </div>
+                                                    <div class="col-md-3">
+                                                        <input type="number" class="form-control form-control-sm" 
+                                                               x-model="app.newTopicPriority"
+                                                               placeholder="Priority" min="0">
+                                                    </div>
+                                                    <div class="col-md-2">
+                                                        <div class="btn-group btn-group-sm w-100">
+                                                            <button type="submit" class="btn btn-success">
+                                                                <i class="fas fa-check"></i>
+                                                            </button>
+                                                            <button type="button" class="btn btn-secondary" 
+                                                                    @click="cancelAddTopic(app)">
+                                                                <i class="fas fa-times"></i>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                        
+                                        <!-- Topics List -->
+                                        <div x-show="app.topicsLoaded && app.topics && app.topics.length > 0">
+                                            <template x-for="topic in (app.topics || [])" :key="topic.ms_admin_it_topic">
+                                                <div class="list-group-item py-1 px-2 small">
+                                                    <span class="badge bg-info me-2" x-text="topic.value_priority"></span>
+                                                    <span x-text="topic.topic_desc"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                        
+                                        <!-- Empty -->
+                                        <div x-show="app.topicsLoaded && (!app.topics || app.topics.length === 0) && !app.addingTopic" 
+                                             class="text-muted small">
+                                            <i class="fas fa-info-circle"></i> No topics yet
+                                        </div>
+                                    </td>
+                                </tr>
+                            </>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function testData() {
+            return {
+                expandedRows: [],
+                applications: [
+                    { 
+                        id: 'APP-946965A2C5', 
+                        name: 'AccAdmin - Accounting Administration System',
+                        topics: null,
+                        topicsLoaded: false,
+                        addingTopic: false,
+                        newTopicDesc: '',
+                        newTopicPriority: 0,
+                        savingTopic: false
+                    }
+                ],
+                
+                toggleExpand(appId) {
+                    const index = this.expandedRows.indexOf(appId);
+                    if (index > -1) {
+                        this.expandedRows.splice(index, 1);
+                    } else {
+                        this.expandedRows.push(appId);
+                        const app = this.applications.find(a => a.id === appId);
+                        if (app && !app.topicsLoaded) {
+                            this.loadTopics(app);
+                        }
+                    }
+                },
+                
+                async loadTopics(app) {
+                    try {
+                        const response = await fetch(`/api/applications/${app.id}/topics`);
+                        const data = await response.json();
+                        app.topics = data;
+                        app.topicsLoaded = true;
+                        app.addingTopic = false;
+                        app.savingTopic = false;
+                    } catch (error) {
+                        console.error('Error loading topics:', error);
+                        alert('Failed to load topics');
+                    }
+                },
+                
+                startAddTopic(app) {
+                    app.addingTopic = true;
+                    app.newTopicDesc = '';
+                    app.newTopicPriority = (app.topics || []).length + 1;
+                },
+                
+                cancelAddTopic(app) {
+                    app.addingTopic = false;
+                    app.newTopicDesc = '';
+                    app.newTopicPriority = 0;
+                },
+                
+                async saveTopic(app) {
+                    if (!app.newTopicDesc.trim()) {
+                        alert('Topic description is required');
+                        return;
+                    }
+                    
+                    app.savingTopic = true;
+                    
+                    try {
+                        const response = await fetch(`/api/applications/${app.id}/topics`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                            },
+                            body: JSON.stringify({
+                                topic_desc: app.newTopicDesc,
+                                value_priority: app.newTopicPriority
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            await this.loadTopics(app);
+                            alert('Topic added successfully!');
+                        } else {
+                            const error = await response.json();
+                            alert('Error: ' + (error.message || 'Failed to add topic'));
+                        }
+                    } catch (error) {
+                        console.error('Error saving topic:', error);
+                        alert('Failed to save topic');
+                    } finally {
+                        app.savingTopic = false;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

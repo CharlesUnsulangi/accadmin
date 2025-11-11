@@ -67,10 +67,22 @@
             </div>
 
             <nav class="nav flex-column">
-                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <!-- Main Dashboard -->
+                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') && !request()->routeIs('dashboard.*') ? 'active' : '' }}">
                     <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
+                    <span>Main Dashboard</span>
                 </a>
+
+                <!-- ACCOUNTING Section -->
+                <div class="mt-3">
+                    <small class="text-white-50 px-3 text-uppercase">Accounting</small>
+                    
+                    <!-- Accounting Dashboard -->
+                    <a href="{{ route('dashboard.accounting') }}" class="nav-link {{ request()->routeIs('dashboard.accounting') ? 'active' : '' }}">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Accounting Dashboard</span>
+                    </a>
+                </div>
 
                 <!-- COA Menu -->
                 <div class="mt-3">
@@ -131,15 +143,21 @@
                 <div class="mt-3">
                     <small class="text-white-50 px-3 text-uppercase">Master</small>
                     
+                    <!-- Master Data Dashboard -->
+                    <a href="{{ route('master.dashboard') }}" class="nav-link {{ request()->routeIs('master.dashboard') ? 'active' : '' }}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Master Dashboard</span>
+                    </a>
+                    
                     <!-- Master Data Dropdown -->
                     <div class="nav-link" data-bs-toggle="collapse" data-bs-target="#masterSubmenu" 
                          style="cursor: pointer;" 
-                         aria-expanded="{{ request()->routeIs('master.*') ? 'true' : 'false' }}">
+                         aria-expanded="{{ request()->routeIs('master.*') && !request()->routeIs('master.dashboard') ? 'true' : 'false' }}">
                         <i class="fas fa-database"></i>
                         <span>Master Data</span>
                         <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
                     </div>
-                    <div class="collapse {{ request()->routeIs('master.*') ? 'show' : '' }}" id="masterSubmenu">
+                    <div class="collapse {{ request()->routeIs('master.*') && !request()->routeIs('master.dashboard') ? 'show' : '' }}" id="masterSubmenu">
                         <a href="{{ route('master.bank') }}" class="nav-link ps-5 {{ request()->routeIs('master.bank') ? 'active' : '' }}">
                             <i class="fas fa-university"></i>
                             <span>Bank</span>
@@ -191,16 +209,32 @@
                 <div class="mt-3">
                     <small class="text-white-50 px-3 text-uppercase">Admin</small>
                     
+                    <!-- Admin IT Dashboard -->
+                    <a href="{{ route('dashboard.admin.it') }}" class="nav-link {{ request()->routeIs('dashboard.admin.it') ? 'active' : '' }}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Admin IT Dashboard</span>
+                    </a>
+                    
                     <!-- Admin IT Dropdown -->
                     <div class="nav-link" data-bs-toggle="collapse" data-bs-target="#adminItSubmenu" 
                          style="cursor: pointer;" 
-                         class="{{ request()->routeIs('it.documentation') || request()->routeIs('admin.sp') ? 'active' : '' }}">
+                         class="{{ request()->routeIs('it.documentation') || request()->routeIs('admin.sp') || request()->routeIs('database.tables') || request()->routeIs('applications.index') ? 'active' : '' }}">
                         <i class="fas fa-tools"></i>
-                        <span>Admin IT</span>
+                        <span>Admin IT Tools</span>
                         <i class="fas fa-chevron-down ms-auto" style="font-size: 0.8rem;"></i>
                     </div>
-                    <div class="collapse {{ request()->routeIs('it.documentation') || request()->routeIs('admin.sp') ? 'show' : '' }}" 
+                    <div class="collapse {{ request()->routeIs('it.documentation') || request()->routeIs('admin.sp') || request()->routeIs('database.tables') || request()->routeIs('applications.index') ? 'show' : '' }}" 
                          id="adminItSubmenu">
+                        <a href="{{ route('database.tables') }}" 
+                           class="nav-link ps-5 {{ request()->routeIs('database.tables') ? 'active' : '' }}">
+                            <i class="fas fa-table"></i>
+                            <span>Database Tables</span>
+                        </a>
+                        <a href="{{ route('applications.index') }}" 
+                           class="nav-link ps-5 {{ request()->routeIs('applications.index') ? 'active' : '' }}">
+                            <i class="fas fa-cubes"></i>
+                            <span>Applications</span>
+                        </a>
                         <a href="{{ route('it.documentation') }}" 
                            class="nav-link ps-5 {{ request()->routeIs('it.documentation') ? 'active' : '' }}">
                             <i class="fas fa-book-open"></i>
@@ -309,7 +343,11 @@
 
             <!-- Page Content -->
             <main class="p-4">
-                {{ $slot }}
+                @isset($slot)
+                    {{ $slot }}
+                @else
+                    @yield('content')
+                @endisset
             </main>
         </div>
     </div>

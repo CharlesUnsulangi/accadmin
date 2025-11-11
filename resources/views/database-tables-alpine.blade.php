@@ -71,11 +71,15 @@
                 </div>
                 <div class="col-md-4">
                     <div class="d-flex gap-2">
+                        <button @click="scanNewTables()" 
+                                class="btn btn-info btn-sm">
+                            <i class="fas fa-search-plus me-1"></i>Scan New Tables
+                        </button>
                         <button @click="updateAllMetadata()" 
                                 :disabled="updating"
                                 class="btn btn-success btn-sm">
                             <span x-show="!updating">
-                                <i class="fas fa-sync-alt me-1"></i>Update All Metadata
+                                <i class="fas fa-sync-alt me-1"></i>Update All
                             </span>
                             <span x-show="updating">
                                 <i class="fas fa-spinner fa-spin me-1"></i>Updating...
@@ -429,7 +433,12 @@
                                     <i class="fas" :class="getSortIcon('record_date_last')"></i>
                                 </a>
                             </th>
-                            <th class="border-0">Updated</th>
+                            <th class="border-0">
+                                <a href="#" @click.prevent="sortByColumn('date_updated')" class="text-decoration-none text-dark">
+                                    Updated
+                                    <i class="fas" :class="getSortIcon('date_updated')"></i>
+                                </a>
+                            </th>
                             <th class="border-0 text-center">Actions</th>
                         </tr>
                     </thead>
@@ -1050,6 +1059,97 @@ function databaseTables() {
             if (seconds < 86400) return Math.floor(seconds / 3600) + ' hours ago';
             if (seconds < 2592000) return Math.floor(seconds / 86400) + ' days ago';
             return this.formatDate(date);
+        },
+
+        // SCAN NEW TABLES (SAFE - CAN INSERT NEW TABLES ONLY, NO DELETE)
+        async scanNewTables() {
+            try {
+                const response = await fetch('/api/database-tables/scan-new-tables');
+                const result = await response.json();
+
+                if (result.success) {
+                    const newTables = result.data.tables;
+                    
+                    if (newTables.length === 0) {
+                        this.showAlert('success', 
+                            `✅ Semua tabel sudah terdaftar!\n` +
+                            `Total tabel di database: ${result.data.total_db_tables}\n` +
+                            `Terdaftar di metadata: ${result.data.registered_tables}`
+                        );
+                        return;
+                    }
+
+                    // Ask user to confirm adding new tables
+                    let tableList = '📊 TABEL BARU DITEMUKAN\n\n';
+                    tableList += 'Ditemukan ' + newTables.length + ' tabel yang belum terdaftar:\n\n';
+                    
+                    newTables.forEach((table, index) => {
+                        tableList += (index + 1) + '. ' + table.table_name + '\n';
+                        tableList += '   └─ Records: ' + table.record_count.toLocaleString() + '\n';
+                        tableList += '   └─ Columns: ' + table.column_count + '\n\n';
+                    });
+                    
+                    tableList += '\n❓ Tambahkan tabel-tabel ini ke metadata?';
+
+                    if (confirm(tableList)) {
+                        await this.addMultipleTables(newTables);
+                    }
+                } else {
+                    this.showAlert('danger', 'Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error scanning tables:', error);
+                this.showAlert('danger', 'Terjadi kesalahan saat scan tabel');
+            }
+        },
+
+        // Add multiple tables to metadata (SAFE - INSERT ONLY, NO DELETE)
+        async addMultipleTables(tables) {
+            let successCount = 0;
+            let failCount = 0;
+            const errors = [];
+
+            for (const table of tables) {
+                try {
+                    const response = await fetch('/api/database-tables/add-new-table', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify({
+                            table_name: table.table_name
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        errors.push(`${table.table_name}: ${data.message}`);
+                    }
+                } catch (error) {
+                    failCount++;
+                    errors.push(`${table.table_name}: ${error.message}`);
+                }
+            }
+
+            // Show results
+            let message = `✅ Berhasil: ${successCount} tabel\n`;
+            if (failCount > 0) {
+                message += `❌ Gagal: ${failCount} tabel\n\n`;
+                if (errors.length > 0) {
+                    message += 'Error details:\n' + errors.join('\n');
+                }
+            }
+
+            this.showAlert(failCount === 0 ? 'success' : 'warning', message);
+            
+            // Reload table list
+            if (successCount > 0) {
+                await this.loadTables();
+            }
         }
     }
 }
